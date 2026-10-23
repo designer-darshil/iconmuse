@@ -1,0 +1,28 @@
+:root {
+  /* Core brand & surface palette */
+  --ink: #0F1116;
+  --canvas: #FFFFFF;
+  --surface: #F7F7F8;
+  --surface-strong: #F1F1F3;
+  --line: #E7E7EA;
+  --muted: #8E8E93;
+  --success: #2EA45B;
+  --violet: #7141E8;
+
+  /* Border radiuses */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 9999px;
+
+  /* Shadows */
+  --shadow-float: 0 8px 26px rgba(15, 17, 22, 0.09);
+  --shadow-subtle: 0 1px 3px rgba(15, 17, 22, 0.05);
+  --shadow-panel: 0 12px 32px rgba(15, 17, 22, 0.12);
+
+  /* Layout dimensions */
+  --announcement-height: 44px;
+  --header-height: 64px;
+  --rail-width: 68px;
+  --sidebar-width: 360px;
+}
