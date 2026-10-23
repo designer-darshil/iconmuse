@@ -1,0 +1,172 @@
+@use 'tokens' as *;
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+.app-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--canvas);
+  color: var(--ink);
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
+/* Announcement Strip */
+.announcement-strip {
+  height: var(--announcement-height);
+  background-color: #000000;
+  color: #FFFFFF;
+  position: relative;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+  /* Subtle purple gradients at both outer edges */
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 220px;
+    pointer-events: none;
+  }
+
+  &::before {
+    left: 0;
+    background: radial-gradient(circle at left center, rgba(113, 65, 232, 0.45) 0%, rgba(113, 65, 232, 0.12) 40%, transparent 75%);
+  }
+
+  &::after {
+    right: 0;
+    background: radial-gradient(circle at right center, rgba(113, 65, 232, 0.45) 0%, rgba(113, 65, 232, 0.12) 40%, transparent 75%);
+  }
+
+  .strip-link {
+    color: #FFFFFF;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-weight: 600;
+    margin-left: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    transition: color 0.15s ease, opacity 0.15s ease;
+
+    &:hover {
+      color: #D3C4FC;
+      opacity: 0.95;
+    }
+  }
+}
+
+/* Desktop Header */
+.desktop-header {
+  height: var(--header-height);
+  border-bottom: 1px solid var(--line);
+  background-color: var(--canvas);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+/* Shell Layout */
+.app-grid-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+
+  /* Desktop >= 1280px */
+  @media (min-width: 1280px) {
+    display: grid;
+    grid-template-columns: var(--rail-width) 1fr var(--sidebar-width);
+    grid-template-rows: 1fr;
+    height: calc(100vh - var(--announcement-height) - var(--header-height));
+  }
+
+  /* Tablet 768px - 1279px */
+  @media (min-width: 768px) and (max-width: 1279px) {
+    display: grid;
+    grid-template-columns: var(--rail-width) 1fr;
+    grid-template-rows: 1fr;
+    height: calc(100vh - var(--announcement-height) - var(--header-height));
+  }
+
+  /* Mobile < 768px */
+  @media (max-width: 767px) {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - var(--announcement-height) - 56px);
+  }
+}
+
+/* Thin Left Navigation Rail */
+.left-rail {
+  background-color: var(--surface);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0;
+  gap: 0.5rem;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Main Workspace Area */
+.main-workspace {
+  background-color: var(--canvas);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  min-width: 0;
+}
+
+/* Contextual Right Sidebar: White background, left border, independent vertical scroll */
+.right-sidebar {
+  background-color: var(--canvas);
+  border-left: 1px solid var(--line);
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
