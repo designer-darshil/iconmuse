@@ -1,0 +1,8 @@
+Open Doodles illustrations
+
+Artwork by Pablo Stanley. The Open Doodles artwork is released under CC0 1.0
+Universal. The creator's license statement is available at:
+https://opendoodles.com/about
+
+The React wrapper used to extract these SVG files is licensed under MIT; see
+react-open-doodles-MIT-LICENSE.txt.

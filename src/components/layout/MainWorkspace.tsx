@@ -6,8 +6,8 @@ import {
 import { MainToolbar } from '../workspace/MainToolbar'
 import { SortRow } from '../workspace/SortRow'
 import { IconGrid } from '../workspace/IconGrid'
-import { MOCK_CATEGORIES } from '../../data/mockIcons'
-import { MOCK_PACKS } from '../../data/mockPacks'
+import { getIconCategories } from '../../data/iconData'
+import { ICON_PACKS } from '../../data/iconPacks'
 import type { MainWorkspaceProps, SortOption, ViewDensity, IconItem } from '../../types'
 
 export interface MainWorkspaceFullProps extends MainWorkspaceProps {
@@ -57,18 +57,18 @@ export const MainWorkspace: React.FC<MainWorkspaceFullProps> = ({
   const [viewDensity, setViewDensity] = useState<ViewDensity>('normal')
   const [workspaceColor, setWorkspaceColor] = useState<string>(activeColor)
 
-  const activePack = MOCK_PACKS.find((p) => p.id === activePackId)
+  const activePack = ICON_PACKS.find((p) => p.id === activePackId)
 
   return (
     <main
-      className="main-workspace flex-1 flex flex-col min-w-0 bg-white"
+      className="main-workspace flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-white"
       id="main-content"
       data-breakpoint={breakpoint}
       data-sidebar-open={isSidebarOpen}
     >
       {/* 1. Main Toolbar: Category Dropdown, 16px Elevated Search, Recolor Control */}
       <MainToolbar
-        categories={MOCK_CATEGORIES}
+        categories={getIconCategories()}
         activeCategory={activeCategory}
         onSelectCategory={onSelectCategory}
         searchQuery={searchQuery}
@@ -79,11 +79,11 @@ export const MainWorkspace: React.FC<MainWorkspaceFullProps> = ({
 
       {/* Active Pack Contextual Banner if a pack is active */}
       {activePack && (
-        <div className="mx-4 md:mx-6 mt-1 mb-2 p-3 rounded-[14px] bg-[#F7F7F8] border border-[#E7E7EA] flex items-center justify-between gap-3">
+        <div className="mx-4 md:mx-6 mt-1 mb-2 p-3 rounded-[14px] bg-[#F7F7F8] border border-[#E7E7EA] flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3">
             <div
               className="w-8 h-8 rounded-[8px] flex items-center justify-center text-white shrink-0 shadow-2xs"
-              style={{ background: activePack.coverGradient }}
+              style={{ background: activePack.accentColor }}
             >
               <Boxes className="w-4 h-4" />
             </div>
@@ -125,7 +125,7 @@ export const MainWorkspace: React.FC<MainWorkspaceFullProps> = ({
       />
 
       {/* 3. Icon Grid Canvas with Layout Transitions & Size slider sync */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         <IconGrid
           icons={icons}
           searchQuery={searchQuery}

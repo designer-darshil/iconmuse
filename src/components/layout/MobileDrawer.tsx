@@ -10,9 +10,10 @@ import {
   Clock,
   Sparkles,
   BookOpen,
+  Puzzle,
 } from 'lucide-react'
 import type { MobileDrawerProps } from '../../types'
-import { MOCK_CATEGORIES } from '../../data/mockIcons'
+import { ICON_CATALOG } from '../../data/iconCatalog'
 import { cn } from '../../utils/cn'
 
 export const MobileDrawer: React.FC<MobileDrawerProps> = ({
@@ -20,7 +21,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   onClose,
   activeNavId,
   onSelectNav,
-  categories = MOCK_CATEGORIES,
+  categories = [...new Map(ICON_CATALOG.map((icon) => [icon.category, { id: icon.category, slug: icon.category, name: icon.category, count: 0 }])).values()],
   activeCategory,
   onSelectCategory,
 }) => {
@@ -109,7 +110,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-base text-[#0F1116]">Menu</span>
                   <span className="text-[11px] font-semibold text-[#7141E8] bg-[#7141E8]/10 px-2 py-0.5 rounded-full">
-                    Iconora
+                    IconMuse
                   </span>
                 </div>
                 <button
@@ -130,6 +131,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                   { id: 'customizer', label: 'Customizer Lab', icon: Sliders },
                   { id: 'collections', label: 'Collections', icon: FolderHeart },
                   { id: 'saved', label: 'Saved Favorites', icon: Bookmark },
+                  { id: 'extensions', label: 'Icon Libraries', icon: Puzzle },
                   { id: 'history', label: 'Recently Used', icon: Clock },
                 ].map((item) => {
                   const Icon = item.icon

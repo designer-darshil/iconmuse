@@ -4,7 +4,7 @@ import {
   Columns2,
   X,
 } from 'lucide-react'
-import { MOCK_ICONS } from '../../data/mockIcons'
+import { ICON_CATALOG } from '../../data/iconCatalog'
 
 export interface CompareTrayProps {
   compareIconIds: string[]
@@ -23,7 +23,7 @@ export const CompareTray: React.FC<CompareTrayProps> = ({
 }) => {
   const shouldReduceMotion = useReducedMotion()
   const isVisible = compareIconIds.length >= 2
-  const selectedIcons = MOCK_ICONS.filter((icon) => compareIconIds.includes(icon.id))
+  const selectedIcons = ICON_CATALOG.filter((icon) => compareIconIds.includes(icon.id))
 
   return (
     <AnimatePresence>

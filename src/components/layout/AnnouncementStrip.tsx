@@ -1,22 +1,22 @@
-import React, { useState } from 'react'
-import { Sparkles, ArrowRight, X } from 'lucide-react'
-import type { AnnouncementStripProps } from '../../types'
+import React, { useState } from "react";
+import { Sparkles, ArrowRight, X } from "lucide-react";
+import type { AnnouncementStripProps } from "../../types";
 
 export const AnnouncementStrip: React.FC<AnnouncementStripProps> = ({
-  message = 'The Iconora beta is live — discover thousands of icons in one workspace.',
-  actionText = 'Sign in',
-  actionHref = '#signin',
+  message = "The Iconmuse beta is live — discover thousands of icons in one workspace.",
+  actionText = "Sign in",
+  actionHref = "#signin",
   onDismiss,
   showDismiss = true,
 }) => {
-  const [isVisible, setIsVisible] = useState(true)
+  const [isVisible, setIsVisible] = useState(true);
 
-  if (!isVisible) return null
+  if (!isVisible) return null;
 
   const handleDismiss = () => {
-    setIsVisible(false)
-    onDismiss?.()
-  }
+    setIsVisible(false);
+    onDismiss?.();
+  };
 
   return (
     <aside
@@ -52,5 +52,5 @@ export const AnnouncementStrip: React.FC<AnnouncementStripProps> = ({
         )}
       </div>
     </aside>
-  )
-}
+  );
+};

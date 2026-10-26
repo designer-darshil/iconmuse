@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import type { CategoryItem } from '../../types'
 import { cn } from '../../utils/cn'
+import { Input } from '../ui/input'
 
 export interface MainToolbarProps {
   categories: CategoryItem[]
@@ -57,7 +58,7 @@ export const MainToolbar: React.FC<MainToolbarProps> = ({
   }, [])
 
   return (
-    <div className="w-full bg-white px-4 md:px-6 pt-5 pb-3 flex flex-col gap-3 select-none">
+    <div className="w-full shrink-0 bg-white px-4 md:px-6 pt-5 pb-3 flex flex-col gap-3 select-none">
       {/* Desktop / Responsive row: Category + Search Input + Recolor */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
         {/* 1. Category Dropdown Pill */}
@@ -109,13 +110,13 @@ export const MainToolbar: React.FC<MainToolbarProps> = ({
           <div className="flex items-center w-full h-12 bg-white border border-[#E7E7EA] hover:border-[#D8D8DC] focus-within:border-[#7141E8] focus-within:ring-3 focus-within:ring-[#7141E8]/10 rounded-[16px] px-4 shadow-[0_4px_16px_rgba(15,17,22,0.06)] transition-all">
             <Search className="w-4 h-4 text-[#8E8E93] shrink-0 mr-3" />
 
-            <input
+            <Input
               ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search 32,000+ icons…"
-              className="flex-1 bg-transparent border-none outline-none focus-visible:outline-none! text-[13px] md:text-sm text-[#0F1116] placeholder-[#8E8E93] font-medium"
+              placeholder="Search icons by name, source, or tag…"
+              className="h-auto min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 py-0 text-[13px] font-medium text-[#0F1116] shadow-none placeholder:text-[#8E8E93] focus-visible:ring-0 focus-visible:ring-offset-0 md:text-sm"
             />
 
             {searchQuery && (

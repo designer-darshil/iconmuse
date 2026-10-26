@@ -1,0 +1,10 @@
+Open Peeps illustrations
+
+Artwork by Pablo Stanley. The Open Peeps artwork is dedicated to the public domain
+under CC0 1.0 Universal. Official source and license statement:
+https://www.openpeeps.com/
+https://creativecommons.org/publicdomain/zero/1.0/
+
+This catalog's generated character SVGs use the Open Peeps style remix from
+@dicebear/open-peeps. The renderer code is MIT licensed; its package license is
+stored separately as @dicebear-open-peeps-LICENSE.

@@ -9,6 +9,13 @@ import {
 import type { IconItem } from '../../types'
 import { cn } from '../../utils/cn'
 
+function getIllustrationTileSvg(svg: string) {
+  return svg.replace(/<svg\b([^>]*)>/i, (_openingTag, attributes: string) => {
+    const cleanAttributes = attributes.replace(/\s(?:width|height)=["'][^"']*["']/gi, '')
+    return `<svg${cleanAttributes} width="80" height="64">`
+  })
+}
+
 export interface IconTileProps {
   icon: IconItem
   activeColor: string
@@ -37,6 +44,7 @@ export const IconTile: React.FC<IconTileProps> = ({
   const [hasCopied, setHasCopied] = useState(false)
   const shouldReduceMotion = useReducedMotion()
   const IconComponent = icon.component
+  const isIllustration = icon.category === 'Illustrations'
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -75,11 +83,19 @@ export const IconTile: React.FC<IconTileProps> = ({
     >
       {/* Centered Icon Preview */}
       <div className="flex-1 flex items-center justify-center w-full pt-1">
-        <IconComponent
-          className="w-7 h-7 transition-transform duration-150 group-hover:scale-105"
-          style={{ color: activeColor }}
-          strokeWidth={icon.strokeWidth || 1.8}
-        />
+        {isIllustration ? (
+          <div
+            aria-hidden="true"
+            className="flex h-16 w-20 items-center justify-center overflow-hidden transition-transform duration-150 group-hover:scale-[1.03] [&>svg]:block [&>svg]:h-16 [&>svg]:w-20"
+            dangerouslySetInnerHTML={{ __html: getIllustrationTileSvg(icon.svg) }}
+          />
+        ) : (
+          <IconComponent
+            className="h-7 w-7 transition-transform duration-150 group-hover:scale-105"
+            style={{ color: activeColor }}
+            strokeWidth={icon.strokeWidth || 1.8}
+          />
+        )}
       </div>
 
       {/* Ellipsized Name */}

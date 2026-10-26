@@ -29,15 +29,12 @@ export const SortRow: React.FC<SortRowProps> = ({
 }) => {
   const tabs: { id: SortOption; label: string }[] = [
     { id: 'all', label: 'All' },
-    { id: 'relevant', label: 'Relevant' },
-    { id: 'popular', label: 'Popular' },
-    { id: 'trending', label: 'Trending' },
     { id: 'name-asc', label: 'Name A–Z' },
     { id: 'name-desc', label: 'Name Z–A' },
   ]
 
   return (
-    <div className="w-full bg-white border-b border-[#E7E7EA] px-4 md:px-6 flex items-center justify-between gap-4 select-none">
+    <div className="w-full shrink-0 bg-white border-b border-[#E7E7EA] px-4 md:px-6 flex items-center justify-between gap-4 select-none">
       {/* Horizontally scrollable tabs list on mobile */}
       <div className="flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth py-1">
         {tabs.map((tab) => {
@@ -46,18 +43,23 @@ export const SortRow: React.FC<SortRowProps> = ({
             <button
               key={tab.id}
               type="button"
+              aria-pressed={isActive}
               onClick={() => onSelectSort(tab.id)}
               className={cn(
-                'flex items-center gap-2 px-3 py-3 text-xs tracking-tight transition-all whitespace-nowrap',
+                'flex h-[48px] flex-none items-center justify-center gap-2 border-b-2 px-3 text-xs tracking-tight whitespace-nowrap transition-colors',
+                tab.id === 'all' ? 'w-[88px]' : 'w-[96px]',
                 isActive
-                  ? 'border-b-2 border-[#0F1116] -mb-[1px] font-semibold text-[#0F1116]'
-                  : 'text-[#8E8E93] hover:text-[#0F1116] font-medium border-b-2 border-transparent'
+                  ? 'border-[#0F1116] font-semibold text-[#0F1116]'
+                  : 'border-transparent font-medium text-[#8E8E93] hover:text-[#0F1116]'
               )}
             >
               <span>{tab.label}</span>
-              {/* Black result-count pill on active tab */}
-              {isActive && (
-                <span className="bg-[#0F1116] text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-4 text-center">
+              {/* Keep the count slot on All at all times so tabs never reflow. */}
+              {tab.id === 'all' && (
+                <span className={cn(
+                  'min-w-4 rounded-full px-1.5 py-0.5 text-center text-[10px] font-bold leading-none tabular-nums',
+                  isActive ? 'bg-[#0F1116] text-white' : 'bg-[#F1F1F3] text-[#6B6B73]'
+                )}>
                   {totalCount}
                 </span>
               )}

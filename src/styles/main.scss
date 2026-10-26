@@ -17,6 +17,24 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+a[href],
+label,
+select:not(:disabled),
+summary,
+input[type='checkbox']:not(:disabled),
+input[type='radio']:not(:disabled),
+input[type='range']:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled,
+input:disabled {
+  cursor: not-allowed;
+}
+
 /* Global visible focus states for keyboard accessibility */
 button:focus-visible,
 input:focus-visible,
@@ -61,6 +79,124 @@ a:focus-visible,
 
 .shadow-subtle {
   box-shadow: 0 1px 3px rgba(15, 17, 22, 0.04), 0 1px 2px rgba(15, 17, 22, 0.02);
+}
+
+/* Catalog loading is intentionally a distinct, quiet state—not a replica of the app. */
+.app-loader {
+  background: var(--canvas);
+
+  &__header {
+    height: var(--header-height);
+    flex: 0 0 var(--header-height);
+    display: flex;
+    align-items: center;
+    padding: 0 1.25rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  &__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    color: var(--ink);
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+  }
+
+  &__mark {
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+
+    svg {
+      width: 1.25rem;
+      height: 1.25rem;
+
+      path:first-child {
+        color: var(--violet);
+      }
+    }
+  }
+
+  &__content {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+  }
+
+  &__panel {
+    width: min(100%, 24rem);
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--line);
+
+    h1 {
+      margin: 0.75rem 0 0;
+      color: var(--ink);
+      font-size: clamp(1.5rem, 3vw, 1.875rem);
+      font-weight: 600;
+      letter-spacing: -0.045em;
+      line-height: 1.1;
+    }
+
+    p {
+      margin: 0.625rem 0 1.375rem;
+      color: #777780;
+      font-size: 0.8125rem;
+      line-height: 1.65;
+    }
+  }
+
+  &__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #777780;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  &__pulse {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--violet);
+    animation: app-loader-pulse 1.25s ease-in-out infinite;
+  }
+
+  &__track {
+    height: 3px;
+    overflow: hidden;
+    background: var(--surface-strong);
+    border-radius: var(--radius-pill);
+  }
+
+  &__bar {
+    display: block;
+    width: 38%;
+    height: 100%;
+    background: var(--violet);
+    border-radius: inherit;
+    animation: app-loader-progress 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes app-loader-pulse {
+  50% { opacity: 0.35; transform: scale(0.72); }
+}
+
+@keyframes app-loader-progress {
+  0% { transform: translateX(-115%); }
+  55%, 100% { transform: translateX(285%); }
 }
 
 /* No scrollbar utility for horizontal tabs and chips */

@@ -6,7 +6,8 @@ import {
   Copy,
   Check,
 } from 'lucide-react'
-import { MOCK_ICONS } from '../../data/mockIcons'
+import { ICON_CATALOG } from '../../data/iconCatalog'
+import { getIconSvg } from '../../data/iconCatalog'
 import type { IconItem } from '../../types'
 import { cn } from '../../utils/cn'
 
@@ -28,7 +29,7 @@ export const CompareModal: React.FC<CompareModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null)
   const previousActiveElement = useRef<HTMLElement | null>(null)
 
-  const icons = MOCK_ICONS.filter((icon) => compareIconIds.includes(icon.id))
+  const icons = ICON_CATALOG.filter((icon) => compareIconIds.includes(icon.id))
 
   // Escape listener and focus trapping
   useEffect(() => {
@@ -78,7 +79,7 @@ export const CompareModal: React.FC<CompareModalProps> = ({
   }, [isOpen, onClose])
 
   const handleCopySvg = (icon: IconItem) => {
-    const code = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${activeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><desc>${icon.name}</desc></svg>`
+    const code = getIconSvg(icon, activeColor, 24)
     navigator.clipboard?.writeText(code)
     setCopiedId(icon.id)
     setTimeout(() => setCopiedId(null), 1500)
@@ -198,10 +199,6 @@ export const CompareModal: React.FC<CompareModalProps> = ({
                         <div className="flex items-center justify-between text-[11px] text-[#8E8E93]">
                           <span>License</span>
                           <span className="font-mono">{icon.license}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] text-[#8E8E93]">
-                          <span>Popularity</span>
-                          <span className="text-[#2EA45B] font-semibold">★ {icon.popularity}</span>
                         </div>
                       </div>
 

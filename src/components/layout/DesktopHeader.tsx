@@ -1,35 +1,18 @@
-import React, { useState } from 'react'
-import {
-  ChevronDown,
-  PanelRightClose,
-  PanelRightOpen,
-  Check,
-} from 'lucide-react'
-import type { DesktopHeaderProps } from '../../types'
+import React from "react";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
+import type { DesktopHeaderProps } from "../../types";
 
 export const DesktopHeader: React.FC<DesktopHeaderProps> = ({
   onToggleSidebar,
   isSidebarOpen = true,
-  totalIconsCount = 96,
 }) => {
-  const [isLibraryMenuOpen, setIsLibraryMenuOpen] = useState(false)
-  const [selectedLibrary, setSelectedLibrary] = useState('All Libraries')
-
-  const libraries = [
-    { name: 'All Libraries', count: totalIconsCount },
-    { name: 'Lucide Icons', count: 24 },
-    { name: 'Phosphor Icons', count: 20 },
-    { name: 'Tabler Icons', count: 20 },
-    { name: 'Heroicons', count: 18 },
-    { name: 'Simple Icons', count: 14 },
-  ]
 
   return (
     <header className="desktop-header select-none">
-      {/* Left: 3-Stroke Iconora Logo, Wordmark, Beta Pill, Community, Release Notes */}
+      {/* Left: 3-Stroke IconMuse Logo, Wordmark, Beta Pill, Community, Release Notes */}
       <div className="flex items-center gap-3">
         <a href="/" className="flex items-center gap-2.5 group">
-          {/* Abstract 3-Stroke Iconora Logo */}
+          {/* Abstract 3-Stroke IconMuse Logo */}
           <div className="w-8 h-8 rounded-[10px] bg-[#F7F7F8] border border-[#E7E7EA] flex items-center justify-center shadow-xs transition-transform duration-200 group-hover:scale-105">
             <svg
               width="20"
@@ -39,17 +22,33 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = ({
               xmlns="http://www.w3.org/2000/svg"
             >
               {/* Stroke 1 (Purple accent) */}
-              <path d="M4.5 19L11 5" stroke="#7141E8" strokeWidth="2.8" strokeLinecap="round" />
+              <path
+                d="M4.5 19L11 5"
+                stroke="#7141E8"
+                strokeWidth="2.8"
+                strokeLinecap="round"
+              />
               {/* Stroke 2 (Solid Ink) */}
-              <path d="M10 20L16.5 6" stroke="#0F1116" strokeWidth="2.8" strokeLinecap="round" />
+              <path
+                d="M10 20L16.5 6"
+                stroke="#0F1116"
+                strokeWidth="2.8"
+                strokeLinecap="round"
+              />
               {/* Stroke 3 (Soft Muted Ink) */}
-              <path d="M15.5 20.5L20.5 10" stroke="#0F1116" strokeWidth="2.8" strokeLinecap="round" opacity="0.35" />
+              <path
+                d="M15.5 20.5L20.5 10"
+                stroke="#0F1116"
+                strokeWidth="2.8"
+                strokeLinecap="round"
+                opacity="0.35"
+              />
             </svg>
           </div>
 
           <div className="flex items-baseline gap-2">
             <span className="font-bold text-[18px] tracking-tight text-[#0F1116] lowercase font-sans">
-              iconora
+              iconmuse
             </span>
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#7141E8] bg-[#7141E8]/10 px-1.5 py-0.5 rounded-full border border-[#7141E8]/20">
               Beta
@@ -83,7 +82,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = ({
       {/* Right: Stacked Source Avatars, "Icon Library" Dropdown, Avatar, Sidebar Toggle */}
       <div className="flex items-center gap-3">
         {/* Small Stacked Source Avatars */}
-        <div
+        {/* <div
           className="hidden sm:flex items-center pl-2 pr-1 py-1 rounded-full bg-[#F7F7F8] border border-[#E7E7EA] cursor-pointer hover:border-[#D8D8DC] transition-colors"
           title="Aggregated from 5 major open-source icon sets"
         >
@@ -107,10 +106,10 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = ({
           <span className="text-[11px] font-semibold text-[#8E8E93] ml-2 pr-1">
             5 Sets
           </span>
-        </div>
+        </div> */}
 
         {/* "Icon Library" Dropdown */}
-        <div className="relative">
+        {/* <div className="relative">
           <button
             type="button"
             onClick={() => setIsLibraryMenuOpen(!isLibraryMenuOpen)}
@@ -145,7 +144,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = ({
               ))}
             </div>
           )}
-        </div>
+        </div> */}
 
         {/* Circular User/Avatar Button */}
         <button
@@ -153,7 +152,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = ({
           aria-label="User account profile"
           className="w-8 h-8 rounded-full bg-[#0F1116] text-white flex items-center justify-center text-xs font-bold ring-2 ring-transparent hover:ring-[#7141E8]/40 transition-all shadow-xs"
         >
-          JD
+          DS
         </button>
 
         {/* Toggle Right Inspector Sidebar Button on tablet / desktop */}
@@ -161,8 +160,12 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = ({
           <button
             type="button"
             onClick={onToggleSidebar}
-            aria-label={isSidebarOpen ? 'Collapse inspector panel' : 'Expand inspector panel'}
-            title={isSidebarOpen ? 'Collapse inspector' : 'Open inspector'}
+            aria-label={
+              isSidebarOpen
+                ? "Collapse inspector panel"
+                : "Expand inspector panel"
+            }
+            title={isSidebarOpen ? "Collapse inspector" : "Open inspector"}
             className="flex items-center justify-center w-8 h-8 rounded-full border border-[#E7E7EA] hover:bg-[#F7F7F8] text-[#0F1116] transition-colors"
           >
             {isSidebarOpen ? (
@@ -174,5 +177,5 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = ({
         )}
       </div>
     </header>
-  )
-}
+  );
+};

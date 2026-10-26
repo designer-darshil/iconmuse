@@ -26,7 +26,7 @@ export const InspectorPlaceholder: React.FC<InspectorPlaceholderProps> = ({
   const IconComponent = selectedIcon?.component || Sparkles
 
   const handleCopySvg = () => {
-    const code = `<svg xmlns="http://www.w3.org/2000/svg" width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${activeColor}" stroke-width="${strokeWeight}" stroke-linecap="round" stroke-linejoin="round"><desc>${selectedIcon?.name || 'Iconora Icon'}</desc></svg>`
+    const code = `<svg xmlns="http://www.w3.org/2000/svg" width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${activeColor}" stroke-width="${strokeWeight}" stroke-linecap="round" stroke-linejoin="round"><desc>${selectedIcon?.name || 'IconMuse Icon'}</desc></svg>`
     navigator.clipboard?.writeText(code)
     setHasCopiedSvg(true)
     setTimeout(() => setHasCopiedSvg(false), 1500)

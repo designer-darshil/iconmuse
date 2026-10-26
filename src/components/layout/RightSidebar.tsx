@@ -11,7 +11,9 @@ import {
 import { FiltersPanel } from '../sidebar/FiltersPanel'
 import { PacksPanel } from '../sidebar/PacksPanel'
 import { SavedPanel } from '../sidebar/SavedPanel'
-import { InspectorPlaceholder } from '../placeholders/InspectorPlaceholder'
+import { IconInspectorPanel } from '../sidebar/IconInspectorPanel'
+import { ExtensionsPanel } from '../sidebar/ExtensionsPanel'
+import { HelpPanel } from '../sidebar/HelpPanel'
 import type { RightSidebarProps, RightSidebarPanel } from '../../types'
 import { cn } from '../../utils/cn'
 
@@ -26,12 +28,19 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   savedIconIds,
   onToggleSave,
   onSelectIcon,
+  sourceCounts,
   selectedSources,
   onToggleSource,
+  collections,
+  onCreateCollection,
+  onDeleteCollection,
+  onToggleCollectionIcon,
+  onDownloadZip,
   selectedStyles,
   onToggleStyle,
   selectedLicenses,
   onToggleLicense,
+  licenseCounts,
   iconSize,
   onChangeIconSize,
   onResetFilters,
@@ -46,6 +55,8 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
     inspector: 'Icon Inspector',
     packs: 'Curated Icon Packs',
     saved: 'Saved Favorites',
+    extensions: 'Icon Libraries',
+    help: 'Help & Docs',
   }
 
   const renderPanelContent = () => {
@@ -53,8 +64,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       case 'filters':
         return (
           <FiltersPanel
-            selectedSources={selectedSources}
-            onToggleSource={onToggleSource}
             selectedStyles={selectedStyles}
             onToggleStyle={onToggleStyle}
             selectedLicenses={selectedLicenses}
@@ -62,15 +71,17 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             iconSize={iconSize}
             onChangeIconSize={onChangeIconSize}
             onResetFilters={onResetFilters}
+            licenseCounts={licenseCounts}
           />
         )
       case 'inspector':
         return (
-          <InspectorPlaceholder
-            selectedIcon={selectedIcon}
-            activeColor={activeColor}
-          />
+          <IconInspectorPanel selectedIcon={selectedIcon} activeColor={activeColor} />
         )
+      case 'extensions':
+        return <ExtensionsPanel sourceCounts={sourceCounts} selectedSources={selectedSources} onToggleSource={onToggleSource} />
+      case 'help':
+        return <HelpPanel />
       case 'packs':
         return (
           <PacksPanel
@@ -86,6 +97,11 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             onToggleSave={onToggleSave}
             onSelectIcon={onSelectIcon}
             activeColor={activeColor}
+            collections={collections}
+            onCreateCollection={onCreateCollection}
+            onDeleteCollection={onDeleteCollection}
+            onToggleCollectionIcon={onToggleCollectionIcon}
+            onDownloadZip={onDownloadZip}
           />
         )
       default:

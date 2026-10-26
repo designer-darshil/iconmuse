@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { MOCK_ICONS } from '../data/mockIcons'
-import { MOCK_PACKS } from '../data/mockPacks'
-import type { IconFilterState, SortOption } from '../types'
+import { ICON_CATALOG } from '../data/iconCatalog'
+import { ICON_PACKS } from '../data/iconPacks'
+import { iconSearchScore } from '../utils/iconSearch'
+import type { IconCollection, IconFilterState, SortOption } from '../types'
 
-const LOCAL_STORAGE_SAVED_KEY = 'iconora_saved_icons'
+const LOCAL_STORAGE_SAVED_KEY = 'iconmuse_saved_icons'
+const LOCAL_STORAGE_COLLECTIONS_KEY = 'iconmuse_icon_collections'
 
 export function useIconFilters() {
   // Read initial values from URL query parameters if present
@@ -52,16 +54,29 @@ export function useIconFilters() {
 
   // Saved Icons in LocalStorage
   const [savedIconIds, setSavedIconIds] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return ['arr-01', 'brn-04', 'cam-08']
+    if (typeof window === 'undefined') return []
     try {
       const stored = localStorage.getItem(LOCAL_STORAGE_SAVED_KEY)
       if (stored) {
-        return JSON.parse(stored)
+        const availableIds = new Set(ICON_CATALOG.map((icon) => icon.id))
+        return (JSON.parse(stored) as string[]).filter((id) => availableIds.has(id))
       }
     } catch {
       // fallback
     }
-    return ['arr-01', 'brn-04', 'cam-08']
+    return []
+  })
+  const [collections, setCollections] = useState<IconCollection[]>(() => {
+    if (typeof window === 'undefined') return []
+    try {
+      const parsed = JSON.parse(localStorage.getItem(LOCAL_STORAGE_COLLECTIONS_KEY) || '[]') as IconCollection[]
+      const validIds = new Set(ICON_CATALOG.map((icon) => icon.id))
+      return parsed
+        .filter((collection) => collection && typeof collection.id === 'string' && typeof collection.name === 'string' && Array.isArray(collection.iconIds))
+        .map((collection) => ({ ...collection, iconIds: collection.iconIds.filter((id) => validIds.has(id)) }))
+    } catch {
+      return []
+    }
   })
 
   // Sync Saved Icons to LocalStorage
@@ -72,6 +87,14 @@ export function useIconFilters() {
       // ignore storage errors
     }
   }, [savedIconIds])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_COLLECTIONS_KEY, JSON.stringify(collections))
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [collections])
 
   // Compare State (Up to 4 icons)
   const [compareIconIds, setCompareIconIds] = useState<string[]>([])
@@ -155,9 +178,35 @@ export function useIconFilters() {
 
   // Toggle Save Icon
   const toggleSave = useCallback((id: string) => {
+    const isSaved = savedIconIds.includes(id)
     setSavedIconIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     )
+    if (isSaved) {
+      setCollections((prev) => prev.map((collection) => ({
+        ...collection,
+        iconIds: collection.iconIds.filter((iconId) => iconId !== id),
+      })))
+    }
+  }, [savedIconIds])
+
+  const createCollection = useCallback((name: string) => {
+    const trimmedName = name.trim()
+    if (!trimmedName) return
+    const id = `collection-${typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Date.now().toString(36)}`
+    setCollections((prev) => [...prev, { id, name: trimmedName, iconIds: [] }])
+  }, [])
+
+  const deleteCollection = useCallback((id: string) => {
+    setCollections((prev) => prev.filter((collection) => collection.id !== id))
+  }, [])
+
+  const toggleCollectionIcon = useCallback((collectionId: string, iconId: string) => {
+    setCollections((prev) => prev.map((collection) => {
+      if (collection.id !== collectionId) return collection
+      const hasIcon = collection.iconIds.includes(iconId)
+      return { ...collection, iconIds: hasIcon ? collection.iconIds.filter((id) => id !== iconId) : [...collection.iconIds, iconId] }
+    }))
   }, [])
 
   // Toggle Compare Icon (max 4)
@@ -249,11 +298,11 @@ export function useIconFilters() {
 
   // Filtering Calculation
   const filteredIcons = useMemo(() => {
-    let result = [...MOCK_ICONS]
+    let result = [...ICON_CATALOG]
 
     // 1. Pack Filter (if active pack)
     if (filters.activePackId) {
-      const pack = MOCK_PACKS.find((p) => p.id === filters.activePackId)
+      const pack = ICON_PACKS.find((p) => p.id === filters.activePackId)
       if (pack) {
         result = result.filter((icon) => pack.iconIds.includes(icon.id))
       }
@@ -290,24 +339,15 @@ export function useIconFilters() {
 
     // 6. Search Query
     if (filters.searchQuery.trim()) {
-      const q = filters.searchQuery.toLowerCase().trim()
-      result = result.filter(
-        (icon) =>
-          icon.name.toLowerCase().includes(q) ||
-          icon.category.toLowerCase().includes(q) ||
-          icon.source.toLowerCase().includes(q) ||
-          icon.tags.some((tag) => tag.toLowerCase().includes(q))
-      )
+      result = result
+        .map((icon) => ({ icon, score: iconSearchScore(icon, filters.searchQuery) }))
+        .filter((match) => match.score > 0)
+        .sort((a, b) => b.score - a.score || a.icon.name.localeCompare(b.icon.name))
+        .map((match) => match.icon)
     }
 
     // 7. Sort
     switch (filters.sort) {
-      case 'popular':
-        result.sort((a, b) => b.popularity - a.popularity)
-        break
-      case 'trending':
-        result.sort((a, b) => (b.popularity % 19) - (a.popularity % 19))
-        break
       case 'name-asc':
         result.sort((a, b) => a.name.localeCompare(b.name))
         break
@@ -331,8 +371,15 @@ export function useIconFilters() {
       'Simple Icons': 0,
       'Feather Icons': 0,
       'Remix Icon': 0,
+      Lineicons: 0,
+      'Open Doodles': 0,
+      'Open Peeps': 0,
+      'Fluent Emoji': 0,
+      'Flowbite Illustrations': 0,
+      Bioicons: 0,
+      'IRA Design': 0,
     }
-    MOCK_ICONS.forEach((icon) => {
+    ICON_CATALOG.forEach((icon) => {
       if (counts[icon.source] !== undefined) {
         counts[icon.source]++
       } else {
@@ -343,12 +390,8 @@ export function useIconFilters() {
   }, [])
 
   const licenseCounts = useMemo(() => {
-    const counts: Record<string, number> = {
-      MIT: 0,
-      'Apache 2.0': 0,
-      'CC BY 4.0': 0,
-    }
-    MOCK_ICONS.forEach((icon) => {
+    const counts: Record<string, number> = { MIT: 0, ISC: 0, 'Apache-2.0': 0, 'CC0-1.0': 0, BSD: 0 }
+    ICON_CATALOG.forEach((icon) => {
       if (counts[icon.license] !== undefined) {
         counts[icon.license]++
       }
@@ -360,7 +403,9 @@ export function useIconFilters() {
     filters,
     filteredIcons,
     totalCount: filteredIcons.length,
+    catalogCount: ICON_CATALOG.length,
     savedIconIds,
+    collections,
     compareIconIds,
     detailIconId,
     sourceCounts,
@@ -374,6 +419,9 @@ export function useIconFilters() {
     toggleStyle,
     toggleLicense,
     toggleSave,
+    createCollection,
+    deleteCollection,
+    toggleCollectionIcon,
     toggleCompare,
     clearCompare,
     resetFilters,

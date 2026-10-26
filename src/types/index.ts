@@ -1,12 +1,12 @@
 import type { ComponentType } from 'react'
 import type { LucideProps } from 'lucide-react'
-import type { IconPack } from '../data/mockPacks'
+import type { IconPack } from '../data/iconPacks'
 
 export type DeviceBreakpoint = 'mobile' | 'tablet' | 'desktop'
 
-export type IconStyle = 'stroke' | 'solid' | 'duotone' | 'thin' | '3d'
+export type IconStyle = 'stroke' | 'solid' | 'duotone' | 'thin' | '3d' | 'regular' | 'bold' | 'light' | 'fill' | 'outline' | 'filled' | 'line' | 'sharp' | 'illustration'
 
-export type IconSource = 'Lucide' | 'Phosphor' | 'Tabler' | 'Heroicons' | 'Simple Icons'
+export type IconSource = 'Lucide' | 'Phosphor' | 'Tabler' | 'Heroicons' | 'Simple Icons' | 'Feather Icons' | 'Remix Icon' | 'Lineicons' | 'Open Doodles' | 'Open Peeps' | 'Fluent Emoji' | 'Flowbite Illustrations' | 'Bioicons' | 'IRA Design'
 
 export interface IconItem {
   id: string
@@ -15,13 +15,15 @@ export interface IconItem {
   source: IconSource
   style: IconStyle
   license: string
+  author?: string
   component: ComponentType<LucideProps>
-  popularity: number
+  svg: string
   tags: string[]
   viewBox?: string
   isNew?: boolean
-  isPopular?: boolean
   strokeWidth?: number
+  popularity: number
+  isPopular?: boolean
 }
 
 export interface CategoryItem {
@@ -39,7 +41,7 @@ export interface NavRailItem {
   badge?: string | number
 }
 
-export type RightSidebarPanel = 'filters' | 'inspector' | 'packs' | 'saved'
+export type RightSidebarPanel = 'filters' | 'inspector' | 'packs' | 'saved' | 'extensions' | 'help'
 
 export type SortOption = 'all' | 'relevant' | 'popular' | 'trending' | 'name-asc' | 'name-desc'
 
@@ -112,19 +114,32 @@ export interface RightSidebarProps {
   savedIconIds: string[]
   onToggleSave: (id: string) => void
   onSelectIcon: (icon: IconItem) => void
-  // Filter controls
+  sourceCounts: Record<string, number>
   selectedSources: string[]
   onToggleSource: (source: string) => void
+  collections: IconCollection[]
+  onCreateCollection: (name: string) => void
+  onDeleteCollection: (id: string) => void
+  onToggleCollectionIcon: (collectionId: string, iconId: string) => void
+  onDownloadZip: (iconIds: string[]) => void
+  // Filter controls
   selectedStyles: string[]
   onToggleStyle: (style: string) => void
   selectedLicenses: string[]
   onToggleLicense: (license: string) => void
+  licenseCounts?: Record<string, number>
   iconSize: number
   onChangeIconSize: (size: number) => void
   onResetFilters: () => void
   activePackId: string | null
   onSelectPack: (packId: string | null) => void
   packs?: IconPack[]
+}
+
+export interface IconCollection {
+  id: string
+  name: string
+  iconIds: string[]
 }
 
 export interface MobileTopBarProps {
@@ -143,3 +158,4 @@ export interface MobileDrawerProps {
   activeCategory?: string
   onSelectCategory?: (slug: string) => void
 }
+

@@ -1,0 +1,17 @@
+{
+  "name": "IconMuse — SVG Icon & Illustration Library",
+  "short_name": "IconMuse",
+  "description": "Search, compare, customize, and download open-source SVG icons and illustrations.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -26,7 +26,7 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
         </div>
 
         <span className="font-bold text-base tracking-tight text-[#0F1116] lowercase">
-          iconora
+          iconmuse
         </span>
         <span className="text-[10px] font-bold text-[#7141E8] bg-[#7141E8]/10 px-1.5 py-0.2 rounded-full uppercase">
           Beta

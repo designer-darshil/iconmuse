@@ -4,15 +4,60 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Iconora — Premium Icon Discovery Workspace</title>
+    <title>IconMuse — Search Free SVG Icons & Illustrations</title>
+    <meta name="description" content="Search, compare, customize, and download open-source SVG icons and illustrations from Lucide, Phosphor, Tabler, Heroicons, Simple Icons, and more." />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="application-name" content="IconMuse" />
+    <meta name="apple-mobile-web-app-title" content="IconMuse" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="IconMuse" />
+    <meta property="og:title" content="IconMuse — Search Free SVG Icons & Illustrations" />
+    <meta property="og:description" content="A fast, searchable catalog of open-source SVG icons and illustrations. Compare sources, customize assets, and export the SVG you need." />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="IconMuse — Search Free SVG Icons & Illustrations" />
+    <meta name="twitter:description" content="A fast, searchable catalog of open-source SVG icons and illustrations." />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "IconMuse",
+        "applicationCategory": "DesignApplication",
+        "operatingSystem": "Web",
+        "browserRequirements": "Requires JavaScript",
+        "description": "A searchable catalog for open-source SVG icons and illustrations. Compare sources, customize SVG assets, and download them with license information.",
+        "featureList": [
+          "Searchable SVG icon catalog",
+          "Open-source illustration library",
+          "SVG preview and customization",
+          "SVG and ZIP downloads with license information",
+          "Icon comparison and saved collections"
+        ],
+        "isAccessibleForFree": true
+      }
+    </script>
     
     <!-- Google Fonts: Poppins (400, 500, 600, 700) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google tag queue: the external script and config load only after analytics consent. -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <main>
+        <h1>IconMuse: free SVG icons and illustrations</h1>
+        <p>Search, compare, customize, and download open-source SVG icons and illustrations from leading libraries.</p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

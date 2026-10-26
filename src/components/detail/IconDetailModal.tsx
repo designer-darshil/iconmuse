@@ -16,7 +16,8 @@ import {
   Search,
   Code2,
 } from 'lucide-react'
-import { MOCK_ICONS } from '../../data/mockIcons'
+import { ICON_CATALOG } from '../../data/iconCatalog'
+import { getIconSvg } from '../../data/iconCatalog'
 import { cn } from '../../utils/cn'
 
 export interface IconDetailModalProps {
@@ -50,6 +51,19 @@ const BG_SWATCHES = [
   '#FEF3C7',
 ]
 
+const ILLUSTRATION_PREVIEW_SIZE = 400
+
+function escapeXmlText(value: string) {
+  return value.replace(/[<>&"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[char]!)
+}
+
+function illustrationMarkup(svg: string, width: number, height: number) {
+  return svg.replace(/<svg\b([^>]*)>/i, (_openingTag, attributes: string) => {
+    const cleanAttributes = attributes.replace(/\s(?:width|height)=["'][^"']*["']/gi, '')
+    return `<svg${cleanAttributes} width="${width}" height="${height}">`
+  })
+}
+
 export const IconDetailModal: React.FC<IconDetailModalProps> = ({
   iconId,
   onClose,
@@ -62,11 +76,12 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
 
   const icon = useMemo(() => {
     if (!iconId) return null
-    return MOCK_ICONS.find((i) => i.id === iconId) || null
+    return ICON_CATALOG.find((i) => i.id === iconId) || null
   }, [iconId])
 
   // Customization State
   const [size, setSize] = useState<number>(36)
+  const [isSizeCustomized, setIsSizeCustomized] = useState(false)
   const [strokeWidth, setStrokeWidth] = useState<number>(2.0)
   const [fgColor, setFgColor] = useState<string>('#0F1116')
   const [bgColor, setBgColor] = useState<string>('transparent')
@@ -93,7 +108,8 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
   // Reset customizer defaults when icon changes
   useEffect(() => {
     if (icon) {
-      setSize(36)
+      setSize(icon.category === 'Illustrations' ? ILLUSTRATION_PREVIEW_SIZE : 36)
+      setIsSizeCustomized(false)
       setStrokeWidth(2.0)
       setFgColor('#0F1116')
       setBgColor('transparent')
@@ -105,6 +121,16 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
       setShadow('none')
     }
   }, [icon?.id])
+
+  useEffect(() => {
+    if (!icon || icon.category !== 'Illustrations') return
+    const updateDefaultSize = () => {
+      if (!isSizeCustomized) setSize(window.matchMedia('(max-width: 767px)').matches ? 320 : 400)
+    }
+    updateDefaultSize()
+    window.addEventListener('resize', updateDefaultSize)
+    return () => window.removeEventListener('resize', updateDefaultSize)
+  }, [icon?.id, icon?.source, isSizeCustomized])
 
   // Focus trapping & Escape key listener
   useEffect(() => {
@@ -156,20 +182,40 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
   if (!icon) return null
 
   const IconComponent = icon.component
+  const isIllustration = icon.category === 'Illustrations'
+  const illustrationHeight = size
   const isSaved = savedIconIds.includes(icon.id)
 
-  const similarIcons = MOCK_ICONS.filter(
+  const similarIcons = ICON_CATALOG.filter(
     (i) => i.category === icon.category && i.id !== icon.id
   ).slice(0, 5)
 
-  const matchingIcons = MOCK_ICONS.filter(
+  const matchingIcons = ICON_CATALOG.filter(
     (i) =>
       i.id !== icon.id &&
       (i.tags.some((t) => icon.tags.includes(t)) || i.source === icon.source)
   ).slice(0, 6)
 
+  const similarIllustrations = ICON_CATALOG.filter((candidate) =>
+    candidate.category === 'Illustrations' && candidate.id !== icon.id &&
+    (candidate.category === icon.category || candidate.tags.some((tag) => icon.tags.includes(tag)))
+  ).slice(0, 4)
+  const similarIllustrationIds = new Set(similarIllustrations.map((candidate) => candidate.id))
+  const moreIllustrations = ICON_CATALOG.filter((candidate) =>
+    candidate.category === 'Illustrations' && candidate.id !== icon.id && !similarIllustrationIds.has(candidate.id)
+  ).slice(0, 6)
+
+  const styleVariants = ICON_CATALOG
+    .filter((candidate) => candidate.source === icon.source && candidate.name === icon.name)
+    .sort((a, b) => a.style.localeCompare(b.style))
+
   // Generate SVG Code
-  const generatedSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${fgColor}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-${icon.name.toLowerCase().replace(/\s+/g, '-')}">\n  <!-- ${icon.name} from ${icon.source} (${icon.license}) -->\n  <path d="M..."/>\n</svg>`
+  const generatedSvg = isIllustration
+    ? illustrationMarkup(icon.svg, size, illustrationHeight).replace(
+      '</svg>',
+      `<metadata>Illustration: ${escapeXmlText(icon.name)}; Source: ${escapeXmlText(icon.source)}${icon.author ? `; Author: ${escapeXmlText(icon.author)}` : ''}; License: ${escapeXmlText(icon.license)}.</metadata></svg>`,
+    )
+    : getIconSvg(icon, fgColor, size)
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -194,8 +240,11 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
     const link = document.createElement('a')
     link.href = url
     link.download = `${icon.name.toLowerCase().replace(/\s+/g, '-')}.svg`
+    link.style.display = 'none'
+    document.body.appendChild(link)
     link.click()
-    URL.revokeObjectURL(url)
+    link.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
     showToast(`Downloaded ${icon.name}.svg`)
   }
 
@@ -214,6 +263,136 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
       default:
         return 'none'
     }
+  }
+
+  if (isIllustration) {
+    return (
+      <AnimatePresence>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#11121A]/55 p-0 backdrop-blur-sm md:p-5" role="dialog" aria-modal="true" aria-labelledby="illustration-title">
+          <motion.div
+            ref={modalRef}
+            initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.985, y: shouldReduceMotion ? 0 : 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.985, y: shouldReduceMotion ? 0 : 6 }}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.18, ease: 'easeOut' }}
+            className="relative flex h-[100dvh] w-full max-w-[1600px] flex-col overflow-hidden bg-white shadow-2xl md:h-[94dvh] md:rounded-2xl md:border md:border-[#E7E7EA]"
+          >
+            <header className="z-10 flex min-h-16 shrink-0 items-center justify-between gap-4 border-b border-[#E7E7EA] bg-white px-4 sm:px-6">
+              <div className="min-w-0">
+                <p className="m-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7A7488]">Illustration library</p>
+                <h1 id="illustration-title" className="m-0 truncate text-lg font-semibold tracking-tight text-[#17151C]">{icon.name}</h1>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <button type="button" onClick={() => onToggleSave(icon.id)} className="rounded-lg border border-[#E7E7EA] px-3 py-2 text-xs font-medium text-[#393641] hover:bg-[#F8F7FA]">
+                  {isSaved ? 'Saved' : 'Save'}
+                </button>
+                <button type="button" onClick={onClose} aria-label="Close icon detail" className="flex h-9 w-9 items-center justify-center rounded-lg text-[#6F6B76] hover:bg-[#F3F2F5] hover:text-[#17151C]">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </header>
+
+            <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_340px] lg:overflow-hidden">
+              <section className="flex min-h-[58dvh] min-w-0 flex-col bg-[#F4F3F6] p-3 sm:p-5 lg:min-h-0" aria-label="Illustration preview">
+                  <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-xl border border-[#E1DFE5] bg-[radial-gradient(#dedbe3_1px,transparent_1px)] [background-size:18px_18px]">
+                  <div
+                    className="m-auto flex h-max w-max shrink-0 items-center justify-center p-4 sm:p-6"
+                    style={{
+                      backgroundColor: bgColor === 'transparent' ? 'transparent' : bgColor,
+                      boxShadow: getShadowStyle(),
+                      opacity: opacity / 100,
+                      transform: `rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
+                    }}
+                    dangerouslySetInnerHTML={{
+                      __html: illustrationMarkup(icon.svg, size, illustrationHeight),
+                    }}
+                  />
+                </div>
+                <div className="flex shrink-0 items-center justify-between gap-3 px-1 pt-3 text-xs text-[#716D78]">
+                  <span>Original artwork dimensions</span>
+                  <span className="font-mono tabular-nums text-[#37333E]">{size} × {illustrationHeight} px</span>
+                </div>
+              </section>
+
+              <aside className="flex flex-col gap-6 border-t border-[#E7E7EA] bg-white p-5 sm:p-6 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
+                <section className="space-y-3">
+                  <div>
+                    <h2 className="m-0 text-sm font-semibold text-[#17151C]">Artwork details</h2>
+                    <p className="mb-0 mt-1 text-xs leading-relaxed text-[#77727F]">The preview opens at the illustration’s original viewBox size. Scroll the canvas to inspect every detail.</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[icon.source, icon.license, icon.category].map((label) => <span key={label} className="rounded-full border border-[#E7E5EA] px-2.5 py-1 text-[11px] text-[#625D69]">{label}</span>)}
+                  </div>
+                </section>
+
+                <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <label htmlFor="illustration-size">Preview size</label>
+                    <span className="font-mono text-xs text-[#7141E8]">{size} × {size} px</span>
+                  </div>
+                  <input id="illustration-size" type="range" min="100" max="1200" step="10" value={size} onChange={(event) => { setIsSizeCustomized(true); setSize(Number(event.target.value)) }} className="w-full accent-[#7141E8]" />
+                  <button type="button" onClick={() => { setIsSizeCustomized(false); setSize(window.matchMedia('(max-width: 767px)').matches ? 320 : 400) }} className="text-xs font-medium text-[#7141E8] hover:underline">Reset to screen size</button>
+                </section>
+
+                <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
+                  <h2 className="m-0 text-sm font-semibold text-[#17151C]">Canvas</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {BG_SWATCHES.map((color) => (
+                      <button key={color} type="button" onClick={() => setBgColor(color)} aria-label={color === 'transparent' ? 'Transparent canvas' : `Canvas ${color}`} aria-pressed={bgColor === color} className={cn('h-8 w-8 rounded-full border border-black/10', bgColor === color && 'ring-2 ring-[#7141E8] ring-offset-2')} style={{ background: color === 'transparent' ? 'linear-gradient(135deg,#fff 45%,#e86b6b 46%,#e86b6b 54%,#fff 55%)' : color }} />
+                    ))}
+                  </div>
+                </section>
+
+                <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
+                  <h2 className="m-0 text-sm font-semibold text-[#17151C]">Adjustments</h2>
+                  <label className="flex items-center justify-between gap-3 text-xs text-[#48434F]">Opacity <input aria-label="Illustration opacity" type="range" min="10" max="100" step="5" value={opacity} onChange={(event) => setOpacity(Number(event.target.value))} className="w-32 accent-[#7141E8]" /><span className="w-9 text-right tabular-nums">{opacity}%</span></label>
+                  <button type="button" onClick={() => setRotation((current) => (current + 90) % 360)} className="rounded-lg border border-[#E7E7EA] px-3 py-2 text-xs text-[#48434F] hover:bg-[#F8F7FA]">Rotate {rotation ? `· ${rotation}°` : ''}</button>
+                  <div className="flex gap-2">
+                    <button type="button" aria-pressed={flipH} onClick={() => setFlipH((value) => !value)} className={cn('flex-1 rounded-lg border px-3 py-2 text-xs', flipH ? 'border-[#7141E8] bg-[#F7F4FF] text-[#5630BD]' : 'border-[#E7E7EA] text-[#48434F]')}>Flip horizontal</button>
+                    <button type="button" aria-pressed={flipV} onClick={() => setFlipV((value) => !value)} className={cn('flex-1 rounded-lg border px-3 py-2 text-xs', flipV ? 'border-[#7141E8] bg-[#F7F4FF] text-[#5630BD]' : 'border-[#E7E7EA] text-[#48434F]')}>Flip vertical</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2" aria-label="Shadow effect">
+                    {(['none', 'subtle', 'float'] as const).map((option) => <button key={option} type="button" aria-pressed={shadow === option} onClick={() => setShadow(option)} className={cn('rounded-lg border px-3 py-1.5 text-xs capitalize', shadow === option ? 'border-[#7141E8] bg-[#F7F4FF] text-[#5630BD]' : 'border-[#E7E7EA] text-[#625D69]')}>{option} shadow</button>)}
+                  </div>
+                </section>
+
+                <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
+                  <h2 className="m-0 text-sm font-semibold text-[#17151C]">Export</h2>
+                  <button type="button" onClick={handleDownloadSvg} className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#7141E8] px-4 text-sm font-semibold text-white hover:bg-[#6031D4]"><Download className="h-4 w-4" />Download SVG</button>
+                  <button type="button" onClick={handleCopySvg} className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#E7E7EA] px-4 text-sm font-medium text-[#393641] hover:bg-[#F8F7FA]"><Copy className="h-4 w-4" />Copy SVG</button>
+                </section>
+
+                <button type="button" onClick={() => { onFindSimilar?.(icon.category); onClose() }} className="self-start text-xs font-medium text-[#7141E8] hover:underline">Find similar illustrations</button>
+
+                {similarIllustrations.length > 0 && (
+                  <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
+                    <h2 className="m-0 text-sm font-semibold text-[#17151C]">Similar illustrations</h2>
+                    <div className="grid grid-cols-2 gap-2">
+                      {similarIllustrations.map((item) => <button key={item.id} type="button" onClick={() => onSelectIcon(item.id)} className="min-w-0 rounded-lg border border-[#E7E7EA] p-2 text-left hover:border-[#C8B8F3] hover:bg-[#FBFAFD]">
+                        <div className="flex h-20 items-center justify-center overflow-hidden rounded-md bg-[#F4F3F6] p-1" dangerouslySetInnerHTML={{ __html: illustrationMarkup(item.svg, 64, 64) }} />
+                        <span className="mt-2 block truncate text-xs font-medium text-[#393641]">{item.name}</span>
+                      </button>)}
+                    </div>
+                  </section>
+                )}
+                {moreIllustrations.length > 0 && (
+                  <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
+                    <h2 className="m-0 text-sm font-semibold text-[#17151C]">More illustrations</h2>
+                    <div className="grid grid-cols-2 gap-2">
+                      {moreIllustrations.map((item) => <button key={item.id} type="button" onClick={() => onSelectIcon(item.id)} className="min-w-0 rounded-lg border border-[#E7E7EA] p-2 text-left hover:border-[#C8B8F3] hover:bg-[#FBFAFD]">
+                        <div className="flex h-20 items-center justify-center overflow-hidden rounded-md bg-[#F4F3F6] p-1" dangerouslySetInnerHTML={{ __html: illustrationMarkup(item.svg, 64, 64) }} />
+                        <span className="mt-2 block truncate text-xs font-medium text-[#393641]">{item.name}</span>
+                      </button>)}
+                    </div>
+                  </section>
+                )}
+              </aside>
+            </div>
+          </motion.div>
+          {toastMessage && <div role="status" className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-[#17151C] px-4 py-2.5 text-xs font-semibold text-white shadow-xl">{toastMessage}</div>}
+        </div>
+      </AnimatePresence>
+    )
   }
 
   return (
@@ -241,7 +420,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.98, y: shouldReduceMotion ? 0 : 6 }}
           transition={{ duration: shouldReduceMotion ? 0 : 0.18, ease: 'easeOut' }}
-          className="relative z-10 w-full max-w-[1680px] h-full md:h-[90vh] bg-white md:rounded-[16px] shadow-2xl border border-[#E7E7EA] overflow-hidden flex flex-col"
+          className="relative z-10 w-full max-w-[1680px] h-[100dvh] md:h-[90vh] bg-white md:rounded-[16px] shadow-2xl border border-[#E7E7EA] overflow-hidden flex flex-col"
         >
           {/* Top Bar for Mobile & Desktop Close */}
           <div className="h-14 px-5 border-b border-[#E7E7EA] flex items-center justify-between bg-white shrink-0 sticky top-0 z-30">
@@ -277,17 +456,17 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
           </div>
 
           {/* Body Layout: 3 Columns on Desktop >= 1280px, Stacked on Tablet & Mobile */}
-          <div className="flex-1 overflow-y-auto lg:overflow-hidden grid grid-cols-1 lg:grid-cols-[360px_1fr_360px] xl:grid-cols-[380px_1fr_380px]">
+          <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden grid grid-cols-1 lg:grid-cols-[360px_1fr_360px] xl:grid-cols-[380px_1fr_380px]">
             {/* -------------------- 1. LEFT PANEL: CUSTOMIZATION -------------------- */}
-            <div className="border-b lg:border-b-0 lg:border-r border-[#E7E7EA] bg-white overflow-y-auto p-5 flex flex-col gap-5">
+            <div className="order-2 lg:order-none border-b lg:border-b-0 lg:border-r border-[#E7E7EA] bg-white overflow-visible lg:overflow-y-auto p-4 sm:p-5 flex flex-col gap-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F1116] m-0">
-                  Customize Glyph
+                  {isIllustration ? 'Customize Illustration' : 'Customize Glyph'}
                 </h3>
                 <button
                   type="button"
                   onClick={() => {
-                    setSize(36)
+                    setSize(isIllustration ? ILLUSTRATION_PREVIEW_SIZE : 36)
                     setStrokeWidth(2.0)
                     setFgColor('#0F1116')
                     setBgColor('transparent')
@@ -303,27 +482,37 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                   Reset
                 </button>
               </div>
+              {isIllustration && (
+                <p className="-mt-3 mb-0 text-[11px] leading-relaxed text-[#777780]">
+                  Original artwork colors are preserved. Size, background, rotation, and effects still apply.
+                </p>
+              )}
 
               {/* Icon Size Slider */}
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between text-xs font-bold text-[#0F1116]">
                   <label htmlFor="custom-size-slider">Size</label>
-                  <span className="font-mono text-[#7141E8]">{size}px</span>
+                  <span className="font-mono text-[#7141E8]">
+                    {isIllustration ? `${size} × ${illustrationHeight}px` : `${size}px`}
+                  </span>
                 </div>
 
                 <input
                   id="custom-size-slider"
                   type="range"
-                  min="16"
-                  max="96"
-                  step="2"
+                  min={isIllustration ? 100 : 16}
+                  max={isIllustration ? 1200 : 96}
+                  step={isIllustration ? 10 : 2}
                   value={size}
                   onChange={(e) => setSize(parseInt(e.target.value, 10))}
                   className="w-full accent-[#7141E8] cursor-pointer"
                 />
 
                 <div className="grid grid-cols-4 gap-1.5 bg-[#F7F7F8] p-1 rounded-full border border-[#E7E7EA]">
-                  {[16, 20, 24, 32].map((preset) => (
+                  {(isIllustration
+                    ? [ILLUSTRATION_PREVIEW_SIZE, 300, 500, 600]
+                    : [16, 20, 24, 32]
+                  ).map((preset) => (
                     <button
                       key={preset}
                       type="button"
@@ -342,7 +531,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
               </div>
 
               {/* Stroke Weight */}
-              <div className="flex flex-col gap-2">
+              {!isIllustration && <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between text-xs font-bold text-[#0F1116]">
                   <label htmlFor="custom-stroke-slider">Stroke Width</label>
                   <span className="font-mono text-[#7141E8]">{strokeWidth.toFixed(1)}px</span>
@@ -357,10 +546,10 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                   onChange={(e) => setStrokeWidth(parseFloat(e.target.value))}
                   className="w-full accent-[#7141E8] cursor-pointer"
                 />
-              </div>
+              </div>}
 
               {/* Foreground Color Input & Swatches */}
-              <div className="flex flex-col gap-2.5">
+              {!isIllustration && <div className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between text-xs font-bold text-[#0F1116]">
                   <label htmlFor="fg-color-input">Icon Color</label>
                   <span className="font-mono text-xs text-[#8E8E93] uppercase">{fgColor}</span>
@@ -395,7 +584,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                     />
                   ))}
                 </div>
-              </div>
+              </div>}
 
               {/* Background Color Input & Swatches */}
               <div className="flex flex-col gap-2.5">
@@ -615,26 +804,36 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
             </div>
 
             {/* -------------------- 2. CENTRAL PANEL: PREVIEW & SIMILAR -------------------- */}
-            <div className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col items-center bg-[#FAFAFA]">
+            <div className="order-1 lg:order-none min-w-0 overflow-visible lg:overflow-y-auto p-3 sm:p-6 md:p-8 flex flex-col items-center bg-[#FAFAFA]">
               {/* Large Preview Stage using CSS Grid-Paper Background */}
               <div
-                className="w-full max-w-xl aspect-4/3 rounded-[20px] border border-[#E7E7EA] relative flex items-center justify-center shadow-xs overflow-hidden"
+                className={cn(
+                  'relative flex border border-[#E7E7EA] shadow-xs',
+                  isIllustration
+                    ? 'w-full max-w-none h-[62dvh] min-h-[360px] max-h-[900px] items-start justify-start overflow-auto rounded-xl'
+                    : 'w-full max-w-xl h-[min(42dvh,360px)] min-h-[230px] md:h-auto md:aspect-4/3 items-center justify-center overflow-hidden rounded-[16px] md:rounded-[20px]'
+                )}
                 style={{
                   backgroundColor: '#FFFFFF',
-                  backgroundImage:
-                    'radial-gradient(circle, #E7E7EA 1.25px, transparent 1.25px)',
-                  backgroundSize: '20px 20px',
+                  backgroundImage: isIllustration
+                    ? 'radial-gradient(circle, #E7E7EA 1px, transparent 1px)'
+                    : 'radial-gradient(circle, #E7E7EA 1.25px, transparent 1.25px)',
+                  backgroundSize: isIllustration ? '16px 16px' : '20px 20px',
                 }}
               >
                 {/* Visual optical crosshair lines */}
-                <div className="absolute inset-8 border border-dashed border-[#E7E7EA]/70 pointer-events-none rounded-[14px]" />
-                <div className="absolute inset-y-0 w-[1px] bg-[#E7E7EA]/40 pointer-events-none" />
-                <div className="absolute inset-x-0 h-[1px] bg-[#E7E7EA]/40 pointer-events-none" />
+                {!isIllustration && <>
+                  <div className="absolute inset-8 border border-dashed border-[#E7E7EA]/70 pointer-events-none rounded-[14px]" />
+                  <div className="absolute inset-y-0 w-[1px] bg-[#E7E7EA]/40 pointer-events-none" />
+                  <div className="absolute inset-x-0 h-[1px] bg-[#E7E7EA]/40 pointer-events-none" />
+                </>}
 
                 {/* Rendered Icon Stage with applied transformations */}
                 <div
                   className={cn(
-                    'flex items-center justify-center p-6 transition-all duration-150',
+                    isIllustration
+                      ? 'w-max h-max shrink-0 flex items-center justify-center p-6 transition-all duration-150'
+                      : 'max-w-[75vw] max-h-[34dvh] md:max-w-none md:max-h-none flex items-center justify-center p-4 sm:p-6 transition-all duration-150',
                     bgShape === 'rounded-square' && 'rounded-[24px]',
                     bgShape === 'circle' && 'rounded-full'
                   )}
@@ -645,19 +844,24 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                     transform: `rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
                   }}
                 >
-                  <IconComponent
-                    style={{
-                      width: `${size * 2}px`,
-                      height: `${size * 2}px`,
-                      color: fgColor,
-                    }}
-                    strokeWidth={strokeWidth}
-                  />
+                  {isIllustration ? (
+                    <div
+                      className="block shrink-0 [&>svg]:block [&>svg]:max-w-none [&>svg]:max-h-none"
+                      dangerouslySetInnerHTML={{
+                        __html: illustrationMarkup(icon.svg, size, illustrationHeight),
+                      }}
+                    />
+                  ) : (
+                    <IconComponent
+                      style={{ width: `${size * 2}px`, height: `${size * 2}px`, maxWidth: '70vw', maxHeight: '34dvh', color: fgColor }}
+                      strokeWidth={strokeWidth}
+                    />
+                  )}
                 </div>
 
                 {/* Dimension Pill Badge */}
-                <span className="absolute bottom-3 right-3 text-[10px] font-mono text-[#8E8E93] bg-white px-2 py-0.5 rounded-full border border-[#E7E7EA] shadow-2xs">
-                  {size} × {size} px
+                <span className="absolute bottom-3 right-3 z-10 text-[10px] font-mono text-[#8E8E93] bg-white px-2 py-0.5 rounded-full border border-[#E7E7EA] shadow-2xs">
+                  {isIllustration ? `${size} × ${illustrationHeight}` : `${size} × ${size}`} px
                 </span>
               </div>
 
@@ -679,6 +883,27 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                         {icon.category}
                       </span>
                     </div>
+                    {styleVariants.length > 1 && (
+                      <div className="flex items-center gap-1.5 mt-3 flex-wrap" aria-label="Icon style variants">
+                        <span className="text-[10px] font-medium text-[#85858D] mr-0.5">Style</span>
+                        {styleVariants.map((variant) => (
+                          <button
+                            key={variant.id}
+                            type="button"
+                            onClick={() => onSelectIcon(variant.id)}
+                            aria-pressed={variant.id === icon.id}
+                            className={cn(
+                              'px-2.5 py-1 rounded-full border text-[10px] font-medium capitalize transition-colors',
+                              variant.id === icon.id
+                                ? 'bg-[#7141E8] border-[#7141E8] text-white'
+                                : 'bg-white border-[#E7E7EA] text-[#66666E] hover:border-[#7141E8]/40 hover:text-[#7141E8]'
+                            )}
+                          >
+                            {variant.style}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Save Button & Find Similar */}
@@ -769,7 +994,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
             </div>
 
             {/* -------------------- 3. RIGHT PANEL: EXPORT & CODE -------------------- */}
-            <div className="border-t lg:border-t-0 lg:border-l border-[#E7E7EA] bg-white overflow-y-auto p-5 flex flex-col gap-5">
+            <div className="order-3 lg:order-none border-t lg:border-t-0 lg:border-l border-[#E7E7EA] bg-white overflow-visible lg:overflow-y-auto p-4 sm:p-5 flex flex-col gap-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F1116] m-0">
                   Export Settings
@@ -779,29 +1004,29 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                 </span>
               </div>
 
-              {/* Green Copy SVG Split-Button Appearance */}
-              <div className="flex items-center w-full relative">
-                <button
-                  type="button"
-                  onClick={handleCopySvg}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-l-[12px] bg-[#2EA45B] hover:bg-[#279250] text-white text-xs font-bold transition-all shadow-subtle hover:-translate-y-[1px] active:translate-y-0"
-                >
-                  <Copy className="w-4 h-4" />
-                  <span>Copy SVG Code</span>
-                </button>
+              <div className="flex items-center gap-2 w-full">
+                <div className="flex-1 min-w-0 relative flex">
+                  <button
+                    type="button"
+                    onClick={handleCopySvg}
+                    className="flex-1 min-w-0 flex items-center justify-center gap-2 h-10 px-3 rounded-l-[11px] bg-[#7141E8] hover:bg-[#6031D4] text-white text-xs font-semibold transition-colors"
+                  >
+                    <Copy className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Copy SVG</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setIsSvgSplitOpen(!isSvgSplitOpen)}
-                  aria-label="More copy options"
-                  aria-expanded={isSvgSplitOpen}
-                  className="px-2.5 py-2.5 bg-[#279250] hover:bg-[#227E45] text-white rounded-r-[12px] border-l border-white/20 transition-all flex items-center justify-center"
-                >
-                  <ChevronDown className="w-4 h-4" />
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsSvgSplitOpen(!isSvgSplitOpen)}
+                    aria-label="More copy options"
+                    aria-expanded={isSvgSplitOpen}
+                    className="w-9 h-10 shrink-0 bg-[#7141E8] hover:bg-[#6031D4] text-white rounded-r-[11px] border-l border-white/20 transition-colors flex items-center justify-center"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
 
-                {isSvgSplitOpen && (
-                  <div className="absolute right-0 top-12 w-48 bg-white border border-[#E7E7EA] rounded-[14px] shadow-xl py-1.5 z-40">
+                  {isSvgSplitOpen && (
+                    <div className="absolute right-0 top-[calc(100%+8px)] w-48 bg-white border border-[#E7E7EA] rounded-xl shadow-lg py-1.5 z-40">
                     <button
                       type="button"
                       onClick={handleCopyJsx}
@@ -818,19 +1043,25 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                       <Copy className="w-3.5 h-3.5 text-[#8E8E93]" />
                       <span>Copy Raw SVG</span>
                     </button>
-                  </div>
-                )}
-              </div>
+                    </div>
+                  )}
+                </div>
 
-              {/* Download SVG Button */}
-              <button
-                type="button"
-                onClick={handleDownloadSvg}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-[12px] bg-[#0F1116] hover:bg-[#1E2028] text-white text-xs font-semibold transition-all shadow-subtle hover:-translate-y-[1px] active:translate-y-0"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download SVG Asset</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    handleDownloadSvg()
+                  }}
+                  className="flex-1 min-w-0 flex items-center justify-center gap-2 h-10 px-3 rounded-[11px] border border-[#E1D9F6] bg-white hover:bg-[#F8F6FF] text-[#4E2CAF] text-xs font-semibold transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Download SVG</span>
+                </button>
+              </div>
+              <p className="-mt-3 text-[10px] leading-relaxed text-[#85858D]">
+                SVG exports include this icon’s source and license metadata.
+              </p>
 
               {/* PNG Format Control & Size Dropdown */}
               <div className="flex flex-col gap-2 p-3.5 rounded-[14px] bg-[#F7F7F8] border border-[#E7E7EA]">
@@ -903,8 +1134,11 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                 </div>
 
                 <p className="text-[11px] text-[#8E8E93] m-0 leading-normal">
-                  Permitted for use in commercial, personal, open-source, and client design projects.
-                  Redistribution and modifications are allowed under open license terms.
+                  {icon.license === 'BSD'
+                    ? 'Keep the original copyright, license conditions, and disclaimer with redistributed copies.'
+                    : icon.license === 'CC0-1.0'
+                      ? 'Released into the public domain; author credit is appreciated when available.'
+                      : 'Check the source license terms before redistributing or modifying this artwork.'}
                 </p>
               </div>
 
@@ -912,9 +1146,9 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
               <div className="p-3.5 rounded-[12px] bg-[#7141E8]/8 border border-[#7141E8]/20 flex items-start gap-2.5 text-xs text-[#0F1116]">
                 <Sparkles className="w-4 h-4 text-[#7141E8] shrink-0 mt-0.5" />
                 <p className="m-0 leading-relaxed text-[11px]">
-                  <strong>Attribution Notice:</strong> Originally crafted by the{' '}
-                  <span className="font-semibold text-[#7141E8]">{icon.source}</span> core library team.
-                  Keeping source citations in code comments is recommended for community recognition.
+                  <strong>Attribution Notice:</strong>{' '}
+                  {icon.author ? <>Created by <span className="font-semibold text-[#7141E8]">{icon.author}</span> and shared through <span className="font-semibold text-[#7141E8]">{icon.source}</span>.</> : <>Shared through <span className="font-semibold text-[#7141E8]">{icon.source}</span>.</>}
+                  {' '}Keep this source information with the exported artwork.
                 </p>
               </div>
             </div>

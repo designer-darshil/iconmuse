@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import {
   Compass,
   Boxes,
@@ -13,8 +13,6 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
   activeItemId,
   onSelectItem,
 }) => {
-  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null)
-
   const primaryControls = [
     { id: 'discover', label: 'Discover', fullLabel: 'Discover / Filters', icon: Compass },
     { id: 'collections', label: 'Packs', fullLabel: 'Collections / Packs', icon: Boxes },
@@ -41,19 +39,18 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
             <div
               key={item.id}
               className="relative flex flex-col items-center group w-full"
-              onMouseEnter={() => setHoveredItemId(item.id)}
-              onMouseLeave={() => setHoveredItemId(null)}
             >
               <button
                 type="button"
                 onClick={() => onSelectItem(item.id)}
-                className="flex flex-col items-center justify-center p-1.5 transition-transform duration-150 active:scale-95 group-hover:-translate-y-0.5"
+                className="flex flex-col items-center justify-center p-1.5"
                 aria-label={item.fullLabel}
+                title={item.fullLabel}
               >
                 {/* Dark circular icon background when active */}
                 <div
                   className={cn(
-                    'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200',
+                    'w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150',
                     isActive
                       ? 'bg-[#0F1116] text-white shadow-xs'
                       : 'bg-transparent text-[#8E8E93] group-hover:bg-white group-hover:text-[#0F1116]'
@@ -75,14 +72,6 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
                 </span>
               </button>
 
-              {/* Desktop Hover Tooltip */}
-              {hoveredItemId === item.id && (
-                <div className="absolute left-[72px] top-1/2 -translate-y-1/2 z-50 pointer-events-none hidden md:block pl-2">
-                  <div className="bg-[#0F1116] text-white text-[11px] font-medium px-2.5 py-1 rounded-md shadow-lg whitespace-nowrap">
-                    {item.fullLabel}
-                  </div>
-                </div>
-              )}
             </div>
           )
         })}
@@ -98,18 +87,17 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
             <div
               key={item.id}
               className="relative flex flex-col items-center group w-full"
-              onMouseEnter={() => setHoveredItemId(item.id)}
-              onMouseLeave={() => setHoveredItemId(null)}
             >
               <button
                 type="button"
                 onClick={() => onSelectItem(item.id)}
-                className="flex flex-col items-center justify-center p-1.5 transition-transform duration-150 active:scale-95 group-hover:-translate-y-0.5"
+                className="flex flex-col items-center justify-center p-1.5"
                 aria-label={item.fullLabel}
+                title={item.fullLabel}
               >
                 <div
                   className={cn(
-                    'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200',
+                    'w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150',
                     isActive
                       ? 'bg-[#0F1116] text-white shadow-xs'
                       : 'bg-transparent text-[#8E8E93] group-hover:bg-white group-hover:text-[#0F1116]'
@@ -130,14 +118,6 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
                 </span>
               </button>
 
-              {/* Desktop Hover Tooltip */}
-              {hoveredItemId === item.id && (
-                <div className="absolute left-[72px] top-1/2 -translate-y-1/2 z-50 pointer-events-none hidden md:block pl-2">
-                  <div className="bg-[#0F1116] text-white text-[11px] font-medium px-2.5 py-1 rounded-md shadow-lg whitespace-nowrap">
-                    {item.fullLabel}
-                  </div>
-                </div>
-              )}
             </div>
           )
         })}

@@ -1,23 +1,23 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { DeviceBreakpoint, ShellState, IconItem } from '../types'
-import { MOCK_ICONS } from '../data/mockIcons'
+import { ICON_CATALOG } from '../data/iconCatalog'
 
 export function useShellState(breakpoint: DeviceBreakpoint) {
   const [state, setState] = useState<ShellState>({
     activeRailTab: 'discover',
     isRightSidebarOpen: breakpoint === 'desktop',
     isMobileDrawerOpen: false,
-    selectedIcon: MOCK_ICONS[0] || null,
+    selectedIcon: ICON_CATALOG[0] || null,
     activeCategory: 'all',
     searchQuery: '',
     activeSort: 'all',
     viewDensity: 'normal',
     activeColor: '#0F1116',
-    savedIconIds: ['arr-01', 'brn-04', 'cam-08'],
+    savedIconIds: [],
     compareIconIds: [],
   })
 
-  // Synchronize sidebar visibility with screen changes
+  // Synchronize sidebar and drawer visibility with screen changes.
   useEffect(() => {
     if (breakpoint === 'desktop') {
       setState((prev: ShellState) => ({ ...prev, isRightSidebarOpen: true, isMobileDrawerOpen: false }))
