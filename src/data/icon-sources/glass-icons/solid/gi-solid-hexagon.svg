@@ -1,0 +1,14 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+<!-- Icon shape from Font Awesome Free 7.2.0 (https://fontawesome.com) - Icons: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). MODIFIED: restyled into glassmorphism for the Glass Icons set. Original (c) Fonticons, Inc. Glass styling: MIT. -->
+<defs>
+<linearGradient id="t_s-hexagon" x1="0" y1="0" x2="0.2" y2="1"><stop offset="0" stop-color="var(--icon-color, #EF4444)" stop-opacity="0.18"/><stop offset="0.55" stop-color="var(--icon-color, #EF4444)" stop-opacity="0.42"/><stop offset="1" stop-color="var(--icon-color, #EF4444)" stop-opacity="0.72"/></linearGradient>
+<linearGradient id="g_s-hexagon" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.92"/><stop offset="0.4" stop-color="#fff" stop-opacity="0.35"/><stop offset="0.65" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<radialGradient id="h_s-hexagon" cx="0.3" cy="0.2" r="0.55"><stop offset="0" stop-color="#fff" stop-opacity="0.6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<filter id="gw_s-hexagon" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="11"/></filter>
+<clipPath id="c_s-hexagon"><g transform="translate(48.00,56.89) scale(0.27778)"><path d="M33.5 220.3c-12.7 22.2-12.7 49.4 0 71.5l96.2 168.1c12.8 22.4 36.7 36.2 62.5 36.2l191.6 0c25.8 0 49.7-13.8 62.5-36.2l96.2-168.1c12.7-22.2 12.7-49.4 0-71.5L446.3 52.2C433.5 29.8 409.6 16 383.8 16L192.2 16c-25.8 0-49.7 13.8-62.5 36.2L33.5 220.3z"/></g></clipPath>
+</defs>
+<g filter="url(#gw_s-hexagon)" opacity="0.45" transform="translate(0,7)"><g transform="translate(48.00,56.89) scale(0.27778)"><path d="M33.5 220.3c-12.7 22.2-12.7 49.4 0 71.5l96.2 168.1c12.8 22.4 36.7 36.2 62.5 36.2l191.6 0c25.8 0 49.7-13.8 62.5-36.2l96.2-168.1c12.7-22.2 12.7-49.4 0-71.5L446.3 52.2C433.5 29.8 409.6 16 383.8 16L192.2 16c-25.8 0-49.7 13.8-62.5 36.2L33.5 220.3z" fill="var(--icon-color, #EF4444)"/></g></g>
+<g transform="translate(48.00,56.89) scale(0.27778)"><path d="M33.5 220.3c-12.7 22.2-12.7 49.4 0 71.5l96.2 168.1c12.8 22.4 36.7 36.2 62.5 36.2l191.6 0c25.8 0 49.7-13.8 62.5-36.2l96.2-168.1c12.7-22.2 12.7-49.4 0-71.5L446.3 52.2C433.5 29.8 409.6 16 383.8 16L192.2 16c-25.8 0-49.7 13.8-62.5 36.2L33.5 220.3z" fill="#FFFFFF"/></g>
+<g transform="translate(48.00,56.89) scale(0.27778)" opacity="0.96"><path d="M33.5 220.3c-12.7 22.2-12.7 49.4 0 71.5l96.2 168.1c12.8 22.4 36.7 36.2 62.5 36.2l191.6 0c25.8 0 49.7-13.8 62.5-36.2l96.2-168.1c12.7-22.2 12.7-49.4 0-71.5L446.3 52.2C433.5 29.8 409.6 16 383.8 16L192.2 16c-25.8 0-49.7 13.8-62.5 36.2L33.5 220.3z" fill="url(#t_s-hexagon)"/></g>
+<g clip-path="url(#c_s-hexagon)"><rect x="0" y="0" width="256" height="256" fill="url(#g_s-hexagon)"/><rect x="0" y="0" width="256" height="256" fill="url(#h_s-hexagon)"/></g>
+</svg>

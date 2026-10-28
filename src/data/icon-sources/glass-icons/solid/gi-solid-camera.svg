@@ -1,0 +1,14 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+<!-- Icon shape from Font Awesome Free 7.2.0 (https://fontawesome.com) - Icons: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). MODIFIED: restyled into glassmorphism for the Glass Icons set. Original (c) Fonticons, Inc. Glass styling: MIT. -->
+<defs>
+<linearGradient id="t_s-camera" x1="0" y1="0" x2="0.2" y2="1"><stop offset="0" stop-color="var(--icon-color, #14B8A6)" stop-opacity="0.18"/><stop offset="0.55" stop-color="var(--icon-color, #14B8A6)" stop-opacity="0.42"/><stop offset="1" stop-color="var(--icon-color, #14B8A6)" stop-opacity="0.72"/></linearGradient>
+<linearGradient id="g_s-camera" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.92"/><stop offset="0.4" stop-color="#fff" stop-opacity="0.35"/><stop offset="0.65" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<radialGradient id="h_s-camera" cx="0.3" cy="0.2" r="0.55"><stop offset="0" stop-color="#fff" stop-opacity="0.6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<filter id="gw_s-camera" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="11"/></filter>
+<clipPath id="c_s-camera"><g transform="translate(48.00,48.00) scale(0.31250)"><path d="M149.1 64.8L138.7 96 64 96C28.7 96 0 124.7 0 160L0 416c0 35.3 28.7 64 64 64l384 0c35.3 0 64-28.7 64-64l0-256c0-35.3-28.7-64-64-64l-74.7 0-10.4-31.2C356.4 45.2 338.1 32 317.4 32L194.6 32c-20.7 0-39 13.2-45.5 32.8zM256 192a96 96 0 1 1 0 192 96 96 0 1 1 0-192z"/></g></clipPath>
+</defs>
+<g filter="url(#gw_s-camera)" opacity="0.45" transform="translate(0,7)"><g transform="translate(48.00,48.00) scale(0.31250)"><path d="M149.1 64.8L138.7 96 64 96C28.7 96 0 124.7 0 160L0 416c0 35.3 28.7 64 64 64l384 0c35.3 0 64-28.7 64-64l0-256c0-35.3-28.7-64-64-64l-74.7 0-10.4-31.2C356.4 45.2 338.1 32 317.4 32L194.6 32c-20.7 0-39 13.2-45.5 32.8zM256 192a96 96 0 1 1 0 192 96 96 0 1 1 0-192z" fill="var(--icon-color, #14B8A6)"/></g></g>
+<g transform="translate(48.00,48.00) scale(0.31250)"><path d="M149.1 64.8L138.7 96 64 96C28.7 96 0 124.7 0 160L0 416c0 35.3 28.7 64 64 64l384 0c35.3 0 64-28.7 64-64l0-256c0-35.3-28.7-64-64-64l-74.7 0-10.4-31.2C356.4 45.2 338.1 32 317.4 32L194.6 32c-20.7 0-39 13.2-45.5 32.8zM256 192a96 96 0 1 1 0 192 96 96 0 1 1 0-192z" fill="#FFFFFF"/></g>
+<g transform="translate(48.00,48.00) scale(0.31250)" opacity="0.96"><path d="M149.1 64.8L138.7 96 64 96C28.7 96 0 124.7 0 160L0 416c0 35.3 28.7 64 64 64l384 0c35.3 0 64-28.7 64-64l0-256c0-35.3-28.7-64-64-64l-74.7 0-10.4-31.2C356.4 45.2 338.1 32 317.4 32L194.6 32c-20.7 0-39 13.2-45.5 32.8zM256 192a96 96 0 1 1 0 192 96 96 0 1 1 0-192z" fill="url(#t_s-camera)"/></g>
+<g clip-path="url(#c_s-camera)"><rect x="0" y="0" width="256" height="256" fill="url(#g_s-camera)"/><rect x="0" y="0" width="256" height="256" fill="url(#h_s-camera)"/></g>
+</svg>

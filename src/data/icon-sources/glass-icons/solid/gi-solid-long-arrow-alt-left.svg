@@ -1,0 +1,14 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+<!-- Icon shape from Font Awesome Free 7.2.0 (https://fontawesome.com) - Icons: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). MODIFIED: restyled into glassmorphism for the Glass Icons set. Original (c) Fonticons, Inc. Glass styling: MIT. -->
+<defs>
+<linearGradient id="t_s-long-arrow-alt-left" x1="0" y1="0" x2="0.2" y2="1"><stop offset="0" stop-color="var(--icon-color, #F59E0B)" stop-opacity="0.18"/><stop offset="0.55" stop-color="var(--icon-color, #F59E0B)" stop-opacity="0.42"/><stop offset="1" stop-color="var(--icon-color, #F59E0B)" stop-opacity="0.72"/></linearGradient>
+<linearGradient id="g_s-long-arrow-alt-left" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.92"/><stop offset="0.4" stop-color="#fff" stop-opacity="0.35"/><stop offset="0.65" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<radialGradient id="h_s-long-arrow-alt-left" cx="0.3" cy="0.2" r="0.55"><stop offset="0" stop-color="#fff" stop-opacity="0.6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<filter id="gw_s-long-arrow-alt-left" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="11"/></filter>
+<clipPath id="c_s-long-arrow-alt-left"><g transform="translate(48.00,56.89) scale(0.27778)"><path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9S192 115.1 192 128l0 64 336 0c26.5 0 48 21.5 48 48l0 32c0 26.5-21.5 48-48 48l-336 0 0 64c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z"/></g></clipPath>
+</defs>
+<g filter="url(#gw_s-long-arrow-alt-left)" opacity="0.45" transform="translate(0,7)"><g transform="translate(48.00,56.89) scale(0.27778)"><path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9S192 115.1 192 128l0 64 336 0c26.5 0 48 21.5 48 48l0 32c0 26.5-21.5 48-48 48l-336 0 0 64c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z" fill="var(--icon-color, #F59E0B)"/></g></g>
+<g transform="translate(48.00,56.89) scale(0.27778)"><path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9S192 115.1 192 128l0 64 336 0c26.5 0 48 21.5 48 48l0 32c0 26.5-21.5 48-48 48l-336 0 0 64c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z" fill="#FFFFFF"/></g>
+<g transform="translate(48.00,56.89) scale(0.27778)" opacity="0.96"><path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9S192 115.1 192 128l0 64 336 0c26.5 0 48 21.5 48 48l0 32c0 26.5-21.5 48-48 48l-336 0 0 64c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z" fill="url(#t_s-long-arrow-alt-left)"/></g>
+<g clip-path="url(#c_s-long-arrow-alt-left)"><rect x="0" y="0" width="256" height="256" fill="url(#g_s-long-arrow-alt-left)"/><rect x="0" y="0" width="256" height="256" fill="url(#h_s-long-arrow-alt-left)"/></g>
+</svg>

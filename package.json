@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "catalog:build": "node scripts/build-icon-catalog.mjs",
+    "contrast:check": "node scripts/check-contrast.mjs",
     "dev": "vite --host --port 5174",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
@@ -30,6 +31,11 @@
   },
   "devDependencies": {
     "@fluentui-emoji/svg": "^2.2.0",
+    "@iconify-json/bi": "^1.2.7",
+    "@iconify-json/carbon": "^1.2.29",
+    "@iconify-json/fluent": "^1.2.60",
+    "@iconify-json/material-symbols": "^1.2.96",
+    "@iconify-json/mingcute": "^1.2.8",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",

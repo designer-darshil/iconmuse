@@ -4,9 +4,9 @@ import type { IconPack } from '../data/iconPacks'
 
 export type DeviceBreakpoint = 'mobile' | 'tablet' | 'desktop'
 
-export type IconStyle = 'stroke' | 'solid' | 'duotone' | 'thin' | '3d' | 'regular' | 'bold' | 'light' | 'fill' | 'outline' | 'filled' | 'line' | 'sharp' | 'illustration'
+export type IconStyle = 'stroke' | 'solid' | 'duotone' | 'thin' | '3d' | 'regular' | 'bold' | 'light' | 'fill' | 'outline' | 'filled' | 'line' | 'sharp' | 'rounded' | 'color' | 'illustration'
 
-export type IconSource = 'Lucide' | 'Phosphor' | 'Tabler' | 'Heroicons' | 'Simple Icons' | 'Feather Icons' | 'Remix Icon' | 'Lineicons' | 'Open Doodles' | 'Open Peeps' | 'Fluent Emoji' | 'Flowbite Illustrations' | 'Bioicons' | 'IRA Design'
+export type IconSource = 'Lucide' | 'Phosphor' | 'Tabler' | 'Heroicons' | 'Simple Icons' | 'Feather Icons' | 'Remix Icon' | 'Lineicons' | 'Material Symbols' | 'Fluent System Icons' | 'Carbon Icons' | 'Bootstrap Icons' | 'MingCute Icons' | 'Open Doodles' | 'Open Peeps' | 'Fluent Emoji' | 'Glass Icons' | 'Flowbite Illustrations' | 'Bioicons' | 'IRA Design'
 
 export interface IconItem {
   id: string
@@ -41,7 +41,7 @@ export interface NavRailItem {
   badge?: string | number
 }
 
-export type RightSidebarPanel = 'filters' | 'inspector' | 'packs' | 'saved' | 'extensions' | 'help'
+export type RightSidebarPanel = 'filters' | 'packs' | 'saved' | 'extensions' | 'help'
 
 export type SortOption = 'all' | 'relevant' | 'popular' | 'trending' | 'name-asc' | 'name-desc'
 
@@ -81,6 +81,10 @@ export interface AnnouncementStripProps {
 }
 
 export interface DesktopHeaderProps {
+  theme: 'light' | 'dark'
+  onThemeChange: (theme: 'light' | 'dark') => void
+  activeCategory: string
+  onSelectCategory: (category: string) => void
   onOpenSearch?: () => void
   onToggleSidebar?: () => void
   isSidebarOpen?: boolean
@@ -93,6 +97,8 @@ export interface LeftNavRailProps {
 }
 
 export interface MainWorkspaceProps {
+  isLoading?: boolean
+  isDark?: boolean
   onToggleSidebar?: () => void
   isSidebarOpen?: boolean
   breakpoint?: DeviceBreakpoint
@@ -101,15 +107,18 @@ export interface MainWorkspaceProps {
   selectedIcon?: IconItem | null
   activePanel?: RightSidebarPanel
   onSelectPanel?: (panel: RightSidebarPanel) => void
+  onOpenCompare?: () => void
 }
 
 export interface RightSidebarProps {
   isOpen: boolean
   onClose: () => void
   isOverlay?: boolean
+  isMobile?: boolean
+  isFloating?: boolean
+  onToggleFloating?: () => void
   activePanel: RightSidebarPanel
   onSelectPanel: (panel: RightSidebarPanel) => void
-  selectedIcon?: IconItem | null
   activeColor?: string
   savedIconIds: string[]
   onToggleSave: (id: string) => void
@@ -143,10 +152,11 @@ export interface IconCollection {
 }
 
 export interface MobileTopBarProps {
-  onOpenMobileDrawer: () => void
-  onOpenSidebar: () => void
-  onFocusSearch?: () => void
-  totalIconsCount?: number
+  theme: 'light' | 'dark'
+  onThemeChange: (theme: 'light' | 'dark') => void
+  activeCategory: string
+  onSelectCategory: (category: string) => void
+  onOpenMenu: () => void
 }
 
 export interface MobileDrawerProps {
@@ -154,8 +164,5 @@ export interface MobileDrawerProps {
   onClose: () => void
   activeNavId: string
   onSelectNav: (id: string) => void
-  categories?: CategoryItem[]
-  activeCategory?: string
-  onSelectCategory?: (slug: string) => void
 }
 

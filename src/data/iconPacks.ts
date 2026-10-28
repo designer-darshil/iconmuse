@@ -67,10 +67,16 @@ export const ICON_PACKS: IconPack[] = [
 
 export function syncIconPacks(icons: Array<{ id: string; name: string; tags: string[] }>) {
   ICON_PACKS.forEach((pack) => {
-    const terms = pack.matchTerms
-    pack.iconIds = icons
-      .filter((icon) => terms.some((term) => icon.name.toLowerCase().includes(term) || icon.tags.some((tag) => tag.includes(term))))
-      .map((icon) => icon.id)
+    const terms = pack.matchTerms.map((term) => term.toLowerCase())
+    const matches: string[] = []
+    for (const icon of icons) {
+      const name = icon.name.toLowerCase()
+      const tags = icon.tags
+      if (terms.some((term) => name.includes(term) || tags.some((tag) => tag.includes(term)))) {
+        matches.push(icon.id)
+      }
+    }
+    pack.iconIds = matches
     pack.count = pack.iconIds.length
   })
 }

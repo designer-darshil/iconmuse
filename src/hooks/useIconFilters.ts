@@ -1,13 +1,13 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { ICON_CATALOG } from '../data/iconCatalog'
 import { ICON_PACKS } from '../data/iconPacks'
-import { iconSearchScore } from '../utils/iconSearch'
+import { searchIcons } from '../utils/iconSearch'
 import type { IconCollection, IconFilterState, SortOption } from '../types'
 
 const LOCAL_STORAGE_SAVED_KEY = 'iconmuse_saved_icons'
 const LOCAL_STORAGE_COLLECTIONS_KEY = 'iconmuse_icon_collections'
 
-export function useIconFilters() {
+export function useIconFilters(catalogReady = true) {
   // Read initial values from URL query parameters if present
   const getInitialUrlState = (): IconFilterState => {
     if (typeof window === 'undefined') {
@@ -339,10 +339,9 @@ export function useIconFilters() {
 
     // 6. Search Query
     if (filters.searchQuery.trim()) {
-      result = result
-        .map((icon) => ({ icon, score: iconSearchScore(icon, filters.searchQuery) }))
-        .filter((match) => match.score > 0)
-        .sort((a, b) => b.score - a.score || a.icon.name.localeCompare(b.icon.name))
+      const eligibleIcons = new Set(result)
+      result = searchIcons(ICON_CATALOG, filters.searchQuery)
+        .filter((match) => eligibleIcons.has(match.icon))
         .map((match) => match.icon)
     }
 
@@ -359,7 +358,7 @@ export function useIconFilters() {
     }
 
     return result
-  }, [filters])
+  }, [filters, catalogReady])
 
   // Dynamic counts for filter badges
   const sourceCounts = useMemo(() => {
@@ -372,9 +371,15 @@ export function useIconFilters() {
       'Feather Icons': 0,
       'Remix Icon': 0,
       Lineicons: 0,
+      'Material Symbols': 0,
+      'Fluent System Icons': 0,
+      'Carbon Icons': 0,
+      'Bootstrap Icons': 0,
+      'MingCute Icons': 0,
       'Open Doodles': 0,
       'Open Peeps': 0,
       'Fluent Emoji': 0,
+      'Glass Icons': 0,
       'Flowbite Illustrations': 0,
       Bioicons: 0,
       'IRA Design': 0,
@@ -387,7 +392,7 @@ export function useIconFilters() {
       }
     })
     return counts
-  }, [])
+  }, [catalogReady])
 
   const licenseCounts = useMemo(() => {
     const counts: Record<string, number> = { MIT: 0, ISC: 0, 'Apache-2.0': 0, 'CC0-1.0': 0, BSD: 0 }
@@ -397,7 +402,7 @@ export function useIconFilters() {
       }
     })
     return counts
-  }, [])
+  }, [catalogReady])
 
   return {
     filters,

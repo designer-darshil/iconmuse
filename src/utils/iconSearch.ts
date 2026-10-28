@@ -32,6 +32,62 @@ function words(value: string) {
   return value.toLowerCase().replace(/([a-z])([A-Z])/g, '$1 $2').split(/[^a-z0-9]+/).filter(Boolean)
 }
 
+interface SearchIndex {
+  allWords: Map<string, number[]>
+  nameWords: Map<string, number[]>
+  allVocabulary: string[]
+  nameVocabulary: string[]
+}
+
+const searchIndexes = new WeakMap<IconItem[], SearchIndex>()
+let lastQuery = ''
+let lastQueryTerms: string[][] = []
+
+function searchIndex(icons: IconItem[]): SearchIndex {
+  const cached = searchIndexes.get(icons)
+  if (cached) return cached
+
+  const allWords = new Map<string, number[]>()
+  const nameWords = new Map<string, number[]>()
+  const addWords = (target: Map<string, number[]>, values: string[], iconIndex: number, seen: Set<string>) => {
+    for (const word of values) {
+      if (seen.has(word)) continue
+      seen.add(word)
+      let matches = target.get(word)
+      if (!matches) target.set(word, (matches = []))
+      matches.push(iconIndex)
+    }
+  }
+
+  icons.forEach((icon, iconIndex) => {
+    const name = words(icon.name)
+    const seenAll = new Set<string>()
+    const seenName = new Set<string>()
+    addWords(nameWords, name, iconIndex, seenName)
+    addWords(allWords, name, iconIndex, seenAll)
+    addWords(allWords, words(icon.source), iconIndex, seenAll)
+    addWords(allWords, words(icon.category), iconIndex, seenAll)
+    for (const tag of icon.tags) addWords(allWords, words(tag), iconIndex, seenAll)
+  })
+
+  const index = {
+    allWords,
+    nameWords,
+    allVocabulary: [...allWords.keys()],
+    nameVocabulary: [...nameWords.keys()],
+  }
+  searchIndexes.set(icons, index)
+  return index
+}
+
+function queryTerms(query: string) {
+  if (query !== lastQuery) {
+    lastQuery = query
+    lastQueryTerms = words(query).map((word) => [word, ...(RELATED_TERMS[word] ?? [])])
+  }
+  return lastQueryTerms
+}
+
 function editDistance(left: string, right: string) {
   if (Math.abs(left.length - right.length) > 2) return 3
   let previous = Array.from({ length: right.length + 1 }, (_, index) => index)
@@ -49,30 +105,58 @@ function editDistance(left: string, right: string) {
   return previous[right.length]
 }
 
-export function iconSearchScore(icon: IconItem, query: string) {
-  const queryWords = words(query)
-  const nameWords = words(icon.name)
-  const sourceWords = words(icon.source)
-  const tagWords = icon.tags.flatMap(words)
-  const categoryWords = words(icon.category)
-  const allWords = [...nameWords, ...tagWords, ...sourceWords, ...categoryWords]
-  let total = 0
+export function searchIcons(icons: IconItem[], query: string) {
+  const termsByWord = queryTerms(query)
+  if (termsByWord.length === 0) return []
 
-  for (const queryWord of queryWords) {
-    const alternatives = [queryWord, ...(RELATED_TERMS[queryWord] ?? [])]
-    let best = 0
+  const index = searchIndex(icons)
+  let ranked = new Map<number, number>()
+  for (const alternatives of termsByWord) {
+    const queryWord = alternatives[0]
+    const scores = new Map<number, number>()
+    const add = (matches: number[] | undefined, score: number) => {
+      if (!matches) return
+      for (const iconIndex of matches) {
+        const previous = scores.get(iconIndex) ?? 0
+        if (score > previous) scores.set(iconIndex, score)
+      }
+    }
+
     for (const term of alternatives) {
-      if (nameWords.some((word) => word === term)) best = Math.max(best, term === queryWord ? 100 : 74)
-      else if (nameWords.some((word) => word.startsWith(term))) best = Math.max(best, term === queryWord ? 82 : 62)
-      else if (allWords.some((word) => word === term)) best = Math.max(best, term === queryWord ? 58 : 44)
+      add(index.nameWords.get(term), term === queryWord ? 100 : 74)
+      const prefixScore = term === queryWord ? 82 : 62
+      for (const name of index.nameVocabulary) {
+        if (name !== term && name.startsWith(term)) add(index.nameWords.get(name), prefixScore)
+      }
+      add(index.allWords.get(term), term === queryWord ? 58 : 44)
     }
-    if (!best && queryWord.length >= 4) {
+
+    if (queryWord.length >= 4) {
       const limit = queryWord.length > 7 ? 2 : 1
-      if (allWords.some((word) => editDistance(queryWord, word) <= limit)) best = 24
+      const candidates = new Set<number>()
+      for (const word of index.allVocabulary) {
+        if (word !== queryWord && editDistance(queryWord, word) <= limit) {
+          for (const iconIndex of index.allWords.get(word) ?? []) candidates.add(iconIndex)
+        }
+      }
+      for (const iconIndex of candidates) {
+        if (!scores.has(iconIndex)) scores.set(iconIndex, 24)
+      }
     }
-    if (!best) return 0
-    total += best
+
+    if (ranked.size === 0 && alternatives === termsByWord[0]) {
+      ranked = scores
+    } else {
+      for (const [iconIndex, score] of ranked) {
+        const nextScore = scores.get(iconIndex)
+        if (nextScore === undefined) ranked.delete(iconIndex)
+        else ranked.set(iconIndex, score + nextScore)
+      }
+    }
+    if (ranked.size === 0) return []
   }
 
-  return total / queryWords.length
+  return [...ranked]
+    .map(([iconIndex, score]) => ({ icon: icons[iconIndex], score: score / termsByWord.length }))
+    .sort((a, b) => b.score - a.score || a.icon.name.localeCompare(b.icon.name))
 }

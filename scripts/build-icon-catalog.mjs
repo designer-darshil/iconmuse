@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { gzipSync } from 'node:zlib'
 import * as lucide from 'lucide-react'
 import * as heroOutline from '@heroicons/react/24/outline'
 import * as heroSolid from '@heroicons/react/24/solid'
@@ -14,7 +15,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const records = []
 const slugify = (value) => value.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
-function add(source, name, style, svg, license, preserveColors = false, author) {
+function add(source, name, style, svg, license, preserveColors = false, author, categoryOverride) {
   if (!svg || !svg.includes('<svg')) return
   // Normalize only the root SVG dimensions. Nested SVG content can rely on
   // width/height attributes, such as DiceBear's viewBox clipping mask.
@@ -42,8 +43,11 @@ function add(source, name, style, svg, license, preserveColors = false, author) 
     })
   }
   const readableName = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/Icon$/, '').replace(/[-_]+/g, ' ').trim()
-  const category = ['Open Doodles', 'Open Peeps', 'Fluent Emoji', 'Flowbite Illustrations'].includes(source) ? 'Illustrations' : 'Icons'
-  records.push({ id, name: readableName.replace(/\b\w/g, (letter) => letter.toUpperCase()), category, source, style, license, ...(author ? { author } : {}), tags: slugify(name).split('-'), svg })
+  const category = categoryOverride ?? (['Open Doodles', 'Open Peeps', 'Fluent Emoji', 'Flowbite Illustrations', 'Bioicons', 'IRA Design'].includes(source) ? 'Illustrations' : 'Icons')
+  const tags = slugify(name).split('-')
+  if (style === '3d') tags.push('3d')
+  if (style === 'gradient' || /<(?:linear|radial)Gradient\b/i.test(svg)) tags.push('gradient')
+  records.push({ id, name: readableName.replace(/\b\w/g, (letter) => letter.toUpperCase()), category, source, style, license, ...(author ? { author } : {}), tags: [...new Set(tags)], svg })
 }
 
 function canonicalSvg(svg) {
@@ -113,6 +117,37 @@ for (const value of Object.values(simpleIcons)) {
   add('Simple Icons', icon.slug, 'solid', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="${icon.path}" fill="currentColor"/></svg>`, 'CC0-1.0')
 }
 
+function addIconifyCollection(packageName, source, license, getStyle = () => 'outline', filter = () => true) {
+  const collection = JSON.parse(fs.readFileSync(path.join(root, 'node_modules', packageName, 'icons.json'), 'utf8'))
+  const defaultWidth = collection.width ?? 24
+  const defaultHeight = collection.height ?? defaultWidth
+  for (const [name, icon] of Object.entries(collection.icons)) {
+    if (!filter(name, icon)) continue
+    const width = icon.width ?? defaultWidth
+    const height = icon.height ?? defaultHeight
+    const left = icon.left ?? 0
+    const top = icon.top ?? 0
+    add(source, name, getStyle(name), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${left} ${top} ${width} ${height}">${icon.body}</svg>`, license)
+  }
+}
+
+// Each Iconify package is an official, normalized SVG distribution. Keep every
+// library as its own catalog source, with its original license and styles.
+addIconifyCollection('@iconify-json/material-symbols', 'Material Symbols', 'Apache-2.0', (name) => {
+  if (name.endsWith('-rounded')) return 'rounded'
+  if (name.endsWith('-sharp')) return 'sharp'
+  if (name.endsWith('-filled')) return 'filled'
+  return 'outline'
+})
+addIconifyCollection('@iconify-json/fluent', 'Fluent System Icons', 'MIT', (name) => {
+  if (name.endsWith('-filled')) return 'filled'
+  if (name.endsWith('-color')) return 'color'
+  return 'regular'
+}, (name) => /-24-(regular|filled|color)$/.test(name))
+addIconifyCollection('@iconify-json/carbon', 'Carbon Icons', 'Apache-2.0', (name) => name.endsWith('-filled') ? 'filled' : 'outline')
+addIconifyCollection('@iconify-json/bi', 'Bootstrap Icons', 'MIT', (name) => name.endsWith('-fill') ? 'filled' : 'outline')
+addIconifyCollection('@iconify-json/mingcute', 'MingCute Icons', 'Apache-2.0', (name) => name.endsWith('-fill') ? 'filled' : 'line')
+
 const openDoodlesRoot = path.join(root, 'public/illustrations/open-doodles')
 for (const file of fs.readdirSync(openDoodlesRoot).filter((entry) => entry.endsWith('.svg'))) {
   const name = path.basename(file, '.svg').replace(/-([a-z0-9])/g, (_, letter) => ` ${letter.toUpperCase()}`).replace(/^\w/, (letter) => letter.toUpperCase())
@@ -164,15 +199,28 @@ for (const [name, seed, head, face, skinColor] of openPeepsSeeds) {
   add('Open Peeps', name, 'illustration', svg, 'CC0-1.0', true)
 }
 
-// Microsoft Fluent Emoji ships a complete, editable flat SVG variant plus
-// high-contrast and modern variants. Include the flat SVG catalog here.
+// Microsoft Fluent Emoji's flat and modern variants are editable SVGs. The
+// modern set uses dimensional shading/gradients and is catalogued as 3D.
 const fluentRoot = path.join(root, 'node_modules/@fluentui-emoji/svg')
 const fluentMetadata = JSON.parse(fs.readFileSync(path.join(fluentRoot, 'metadata.json'), 'utf8'))
 for (const emoji of fluentMetadata.emojis) {
-  if (!emoji.styles.includes('flat')) continue
-  const svgPath = path.join(fluentRoot, 'icons/flat', `${emoji.slug}.svg`)
-  if (!fs.existsSync(svgPath)) continue
-  add('Fluent Emoji', emoji.name, 'flat', fs.readFileSync(svgPath, 'utf8'), 'MIT', true)
+  for (const [emojiStyle, catalogStyle] of [['flat', 'flat'], ['modern', '3d']]) {
+    if (!emoji.styles.includes(emojiStyle)) continue
+    const svgPath = path.join(fluentRoot, 'icons', emojiStyle, `${emoji.slug}.svg`)
+    if (!fs.existsSync(svgPath)) continue
+    add('Fluent Emoji', emoji.name, catalogStyle, fs.readFileSync(svgPath, 'utf8'), 'MIT', true, undefined, catalogStyle === '3d' ? 'Icons' : undefined)
+  }
+}
+
+// Glass Icons restyles Font Awesome Free glyphs with editable SVG gradients,
+// highlights and filters. Keep only regular/solid glyphs, not brand marks.
+const glassRoot = path.join(root, 'src/data/icon-sources/glass-icons')
+for (const variant of ['solid', 'regular']) {
+  const folder = path.join(glassRoot, variant)
+  for (const file of fs.readdirSync(folder).filter((entry) => entry.endsWith('.svg'))) {
+    const name = path.basename(file, '.svg').replace(`gi-${variant}-`, '')
+    add('Glass Icons', name, 'gradient', fs.readFileSync(path.join(folder, file), 'utf8'), 'CC-BY-4.0', true, 'Font Awesome Free (adapted by Tien Chu)')
+  }
 }
 
 // Flowbite's Svelte package contains the official editable SVG assets. Keep
@@ -238,7 +286,8 @@ for (const record of records) {
   positionsBySvg.set(key, unique.length)
   unique.push(record)
 }
-fs.writeFileSync(path.join(root, 'public/icon-catalog.json'), JSON.stringify(unique))
+const catalogJson = JSON.stringify(unique)
+fs.writeFileSync(path.join(root, 'public/icon-catalog.json.gz'), gzipSync(catalogJson, { level: 9 }))
 const licenseDir = path.join(root, 'public/icon-licenses')
 fs.mkdirSync(licenseDir, { recursive: true })
 for (const [packageName, fileName] of [
@@ -253,14 +302,23 @@ for (const [packageName, fileName] of [
   ['@dicebear/open-peeps', 'LICENSE'],
   ['@fluentui-emoji/svg', 'LICENSE'],
   ['flowbite-svelte-illustrations', 'LICENSE'],
+  ['@iconify-json/material-symbols', 'info.json'],
+  ['@iconify-json/fluent', 'info.json'],
+  ['@iconify-json/carbon', 'info.json'],
+  ['@iconify-json/bi', 'info.json'],
+  ['@iconify-json/mingcute', 'info.json'],
 ]) {
   const source = path.join(root, 'node_modules', packageName, fileName)
   const target = packageName.replaceAll('/', '-') + '-' + fileName
   if (fs.existsSync(source)) fs.copyFileSync(source, path.join(licenseDir, target))
 }
+for (const fileName of ['LICENSE', 'README.md']) {
+  fs.copyFileSync(path.join(glassRoot, fileName), path.join(licenseDir, `glass-icons-${fileName}`))
+}
+fs.copyFileSync(path.join(root, 'node_modules/@fluentui-emoji/svg/LICENSE'), path.join(licenseDir, 'fluentui-emoji-LICENSE'))
 for (const [source, target] of [
   ['public/illustrations/bioicons/licenses/cc-0.txt', 'bioicons-CC0-1.0.txt'],
   ['public/illustrations/bioicons/licenses/bsd.txt', 'bioicons-BSD.txt'],
   ['public/illustrations/ira-design/LICENSE.txt', 'ira-design-MIT.txt'],
 ]) fs.copyFileSync(path.join(root, source), path.join(licenseDir, target))
-console.log(`Wrote ${unique.length} icons to public/icon-catalog.json`)
+console.log(`Wrote ${unique.length} icons to public/icon-catalog.json.gz`)
