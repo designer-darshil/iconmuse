@@ -97,7 +97,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             </header>
 
             <div className="flex flex-col px-4 pb-3 pt-2">
-              {destinations.map(({ id, title, detail }, index) => {
+              {destinations.map(({ id, title, detail }) => {
                 const selected = activeNavId === id;
                 return (
                   <React.Fragment key={id}>

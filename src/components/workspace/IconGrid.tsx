@@ -1,36 +1,34 @@
-import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import {
-  SearchX,
-  RotateCcw,
-  Check,
-  ChevronDown,
-} from 'lucide-react'
-import { IconTile } from './IconTile'
-import type { IconItem, ViewDensity } from '../../types'
-import { cn } from '../../utils/cn'
-import { getIconSvg } from '../../data/iconCatalog'
+import React, { useState, useEffect } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { SearchX, RotateCcw, Check, ChevronDown } from "lucide-react";
+import { IconTile } from "./IconTile";
+import type { IconItem, SortOption, ViewDensity } from "../../types";
+import { cn } from "../../utils/cn";
+import { getIconSvg } from "../../data/iconCatalog";
+import { copyToClipboard } from "../../utils/copyToClipboard";
 
 export interface IconGridProps {
-  icons: IconItem[]
-  isLoading?: boolean
-  searchQuery: string
-  activeColor: string
-  iconSize?: number
-  savedIconIds: string[]
-  compareIconIds: string[]
-  onToggleSave: (id: string) => void
-  onToggleCompare: (id: string) => void
-  onSelectIcon: (icon: IconItem) => void
-  selectedIcon: IconItem | null
-  onResetFilters: () => void
-  viewDensity: ViewDensity
+  icons: IconItem[];
+  activeSort: SortOption;
+  isLoading?: boolean;
+  searchQuery: string;
+  activeColor: string;
+  iconSize?: number;
+  savedIconIds: string[];
+  compareIconIds: string[];
+  onToggleSave: (id: string) => void;
+  onToggleCompare: (id: string) => void;
+  onSelectIcon: (icon: IconItem) => void;
+  selectedIcon: IconItem | null;
+  onResetFilters: () => void;
+  viewDensity: ViewDensity;
 }
 
-const BATCH_SIZE = 72
+const BATCH_SIZE = 72;
 
 export const IconGrid: React.FC<IconGridProps> = ({
   icons,
+  activeSort,
   isLoading = false,
   searchQuery,
   activeColor,
@@ -44,40 +42,40 @@ export const IconGrid: React.FC<IconGridProps> = ({
   onResetFilters,
   viewDensity,
 }) => {
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
-  const [visibleCount, setVisibleCount] = useState<number>(BATCH_SIZE)
-  const shouldReduceMotion = useReducedMotion()
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState<number>(BATCH_SIZE);
+  const shouldReduceMotion = useReducedMotion();
 
   // Reset pagination batch when filters or search change
   useEffect(() => {
-    setVisibleCount(BATCH_SIZE)
-  }, [icons.length, searchQuery])
+    setVisibleCount(BATCH_SIZE);
+  }, [icons.length, searchQuery]);
 
-  const visibleIcons = icons.slice(0, visibleCount)
-  const hasMore = visibleCount < icons.length
+  const visibleIcons = icons.slice(0, visibleCount);
+  const hasMore = visibleCount < icons.length;
 
-  const handleCopySvg = (icon: IconItem) => {
-    const svgCode = getIconSvg(icon, activeColor, iconSize)
-
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(svgCode).catch(() => {})
+  const handleCopySvg = async (icon: IconItem) => {
+    const svgCode = getIconSvg(icon, activeColor, iconSize);
+    try {
+      await copyToClipboard(svgCode);
+      setToastMessage(`Copied SVG: ${icon.name}`);
+    } catch {
+      setToastMessage("Could not copy SVG. Check clipboard permissions and try again.");
     }
-
-    setToastMessage(`Copied SVG: ${icon.name}`)
     setTimeout(() => {
-      setToastMessage(null)
-    }, 2000)
-  }
+      setToastMessage(null);
+    }, 2000);
+  };
 
   // 1. Loading Skeletons State
   if (isLoading) {
     return (
       <div
         className={cn(
-          'w-full p-4 md:p-6 grid gap-3',
-          viewDensity === 'normal'
-            ? 'grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8'
-            : 'grid-cols-3 xs:grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10'
+          "w-full p-4 md:p-6 grid gap-3",
+          viewDensity === "normal"
+            ? "grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8"
+            : "grid-cols-3 xs:grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10",
         )}
       >
         {Array.from({ length: 24 }).map((_, i) => (
@@ -91,7 +89,7 @@ export const IconGrid: React.FC<IconGridProps> = ({
           </div>
         ))}
       </div>
-    )
+    );
   }
 
   // 2. Empty Search State
@@ -108,7 +106,7 @@ export const IconGrid: React.FC<IconGridProps> = ({
         <p className="text-xs md:text-sm text-[#8E8E93] max-w-sm mb-6 leading-relaxed">
           {searchQuery
             ? `We couldn't find anything matching "${searchQuery}". Try selecting fewer filters or searching for broader terms.`
-            : 'There are no icons matching the currently selected filters.'}
+            : "There are no icons matching the currently selected filters."}
         </p>
 
         <button
@@ -120,49 +118,33 @@ export const IconGrid: React.FC<IconGridProps> = ({
           <span>Reset search & filters</span>
         </button>
       </div>
-    )
-  }
-
-  // 3. Staggered reveal & layout animations
-  // Stagger 30ms between items, subtle opacity + y translation only
-  const tileVariants: { hidden: { opacity: number; y: number }; visible: (i: number) => { opacity: number; y: number; transition: { delay: number; duration: number; ease: 'easeOut' } } } = {
-    hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 8 },
-    visible: (i: number) => ({
-      opacity: 1,
-      y: 0,
-      transition: {
-        delay: shouldReduceMotion ? 0 : Math.min(i * 0.03, 0.45), // 30ms stagger, capped at 450ms
-        duration: shouldReduceMotion ? 0 : 0.2,
-        ease: 'easeOut' as const,
-      },
-    }),
+    );
   }
 
   return (
-    <div className="w-full p-4 md:p-6 pb-32 relative">
-      <motion.div
-        layout
-        className={cn(
-          'grid gap-x-3 gap-y-4',
-          viewDensity === 'normal'
-            ? 'grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8'
-            : 'grid-cols-3 xs:grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10'
-        )}
-      >
-        <AnimatePresence mode="popLayout">
-          {visibleIcons.map((icon, index) => (
-            <motion.div
-              layout
-              key={icon.id}
-              custom={index}
-              variants={tileVariants}
-              initial="hidden"
-              animate="visible"
-              exit={{ opacity: 0, transition: { duration: 0.12 } }}
-            >
+    <div className="w-full p-3 md:p-6 pb-14 md:pb-32 relative">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={activeSort}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={shouldReduceMotion ? undefined : { opacity: 0, y: -3 }}
+          transition={{ duration: shouldReduceMotion ? 0 : 0.14, ease: "easeOut" }}
+        >
+          <div
+            className={cn(
+              "grid gap-x-3 gap-y-4",
+              viewDensity === "normal"
+                ? "grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8"
+                : "grid-cols-3 xs:grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10",
+            )}
+          >
+            {visibleIcons.map((icon) => (
               <IconTile
+                key={icon.id}
                 icon={icon}
                 activeColor={activeColor}
+                iconSize={iconSize}
                 isSaved={savedIconIds.includes(icon.id)}
                 isCompared={compareIconIds.includes(icon.id)}
                 onToggleSave={onToggleSave}
@@ -170,12 +152,11 @@ export const IconGrid: React.FC<IconGridProps> = ({
                 onCopySvg={handleCopySvg}
                 onSelectIcon={onSelectIcon}
                 isSelected={selectedIcon?.id === icon.id}
-                index={index}
               />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </AnimatePresence>
 
       {/* Pagination / Virtual Batching abstraction for large sets */}
       {hasMore && (
@@ -195,13 +176,8 @@ export const IconGrid: React.FC<IconGridProps> = ({
       )}
 
       {/* Toast Feedback */}
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.15 }}
+      {toastMessage && (
+          <div
             className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#0F1116] text-white text-xs font-semibold shadow-2xl border border-white/10"
             role="status"
             aria-live="polite"
@@ -210,9 +186,8 @@ export const IconGrid: React.FC<IconGridProps> = ({
               <Check className="w-2.5 h-2.5 stroke-[3]" />
             </div>
             <span>{toastMessage}</span>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
     </div>
-  )
-}
+  );
+};

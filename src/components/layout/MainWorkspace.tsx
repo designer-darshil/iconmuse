@@ -1,42 +1,51 @@
-import React, { useState } from 'react'
-import {
-  Boxes,
-  X,
-} from 'lucide-react'
-import { MainToolbar } from '../workspace/MainToolbar'
-import { SortRow } from '../workspace/SortRow'
-import { IconGrid } from '../workspace/IconGrid'
-import { getIconCategories } from '../../data/iconData'
-import { ICON_PACKS } from '../../data/iconPacks'
-import type { MainWorkspaceProps, SortOption, ViewDensity, IconItem } from '../../types'
+import React, { useEffect, useRef, useState } from "react";
+import { Boxes, X } from "lucide-react";
+import { MainToolbar } from "../workspace/MainToolbar";
+import { SortRow } from "../workspace/SortRow";
+import { IconGrid } from "../workspace/IconGrid";
+import { getIconCategories } from "../../data/iconData";
+import { ICON_PACKS } from "../../data/iconPacks";
+import type {
+  MainWorkspaceProps,
+  SortOption,
+  ViewDensity,
+  IconItem,
+} from "../../types";
 
 export interface MainWorkspaceFullProps extends MainWorkspaceProps {
-  icons: IconItem[]
-  totalCount: number
-  searchQuery: string
-  onSearchChange: (q: string) => void
-  activeCategory: string
-  onSelectCategory: (cat: string) => void
-  activeSort: SortOption
-  onSelectSort: (sort: SortOption) => void
-  activePackId: string | null
-  onSelectPack: (packId: string | null) => void
-  iconSize: number
-  savedIconIds: string[]
-  compareIconIds: string[]
-  onToggleSave: (id: string) => void
-  onToggleCompare: (id: string) => void
-  onClearCompare: () => void
-  onResetFilters: () => void
+  icons: IconItem[];
+  totalCount: number;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
+  activeCategory: string;
+  onSelectCategory: (cat: string) => void;
+  sourceCounts: Record<string, number>;
+  selectedSources: string[];
+  onToggleSource: (source: string) => void;
+  activeSort: SortOption;
+  onSelectSort: (sort: SortOption) => void;
+  activePackId: string | null;
+  onSelectPack: (packId: string | null) => void;
+  iconSize: number;
+  savedIconIds: string[];
+  compareIconIds: string[];
+  onToggleSave: (id: string) => void;
+  onToggleCompare: (id: string) => void;
+  onClearCompare: () => void;
+  onResetFilters: () => void;
 }
 
 export const MainWorkspace: React.FC<MainWorkspaceFullProps> = ({
+  isLoading = false,
   icons,
   totalCount,
   searchQuery,
   onSearchChange,
   activeCategory,
   onSelectCategory,
+  sourceCounts,
+  selectedSources,
+  onToggleSource,
   activeSort,
   onSelectSort,
   activePackId,
@@ -47,17 +56,28 @@ export const MainWorkspace: React.FC<MainWorkspaceFullProps> = ({
   onToggleSave,
   onToggleCompare,
   onClearCompare,
+  onOpenCompare,
   onResetFilters,
+  onToggleSidebar,
   breakpoint,
   isSidebarOpen,
-  activeColor = '#0F1116',
+  activeColor = "#0F1116",
+  isDark = false,
   onSelectIcon,
   selectedIcon,
 }) => {
-  const [viewDensity, setViewDensity] = useState<ViewDensity>('normal')
-  const [workspaceColor, setWorkspaceColor] = useState<string>(activeColor)
+  const [viewDensity, setViewDensity] = useState<ViewDensity>("normal");
+  const [workspaceColor, setWorkspaceColor] = useState<string>(activeColor);
+  const previousDarkRef = useRef(isDark);
+  useEffect(() => {
+    if (previousDarkRef.current === isDark) return;
+    const oldDefault = previousDarkRef.current ? "#F4F4F5" : "#0F1116";
+    const nextDefault = isDark ? "#F4F4F5" : "#0F1116";
+    setWorkspaceColor((color) => color === oldDefault ? nextDefault : color);
+    previousDarkRef.current = isDark;
+  }, [isDark]);
 
-  const activePack = ICON_PACKS.find((p) => p.id === activePackId)
+  const activePack = ICON_PACKS.find((p) => p.id === activePackId);
 
   return (
     <main
@@ -71,10 +91,14 @@ export const MainWorkspace: React.FC<MainWorkspaceFullProps> = ({
         categories={getIconCategories()}
         activeCategory={activeCategory}
         onSelectCategory={onSelectCategory}
+        sourceCounts={sourceCounts}
+        selectedSources={selectedSources}
+        onToggleSource={onToggleSource}
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
         activeColor={workspaceColor}
         onSelectColor={setWorkspaceColor}
+        onOpenFilters={onToggleSidebar}
       />
 
       {/* Active Pack Contextual Banner if a pack is active */}
@@ -120,6 +144,7 @@ export const MainWorkspace: React.FC<MainWorkspaceFullProps> = ({
         onSelectSort={onSelectSort}
         compareCount={compareIconIds.length}
         onClearCompare={onClearCompare}
+        onOpenCompare={onOpenCompare}
         viewDensity={viewDensity}
         onChangeViewDensity={setViewDensity}
       />
@@ -127,7 +152,9 @@ export const MainWorkspace: React.FC<MainWorkspaceFullProps> = ({
       {/* 3. Icon Grid Canvas with Layout Transitions & Size slider sync */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         <IconGrid
+          isLoading={isLoading}
           icons={icons}
+          activeSort={activeSort}
           searchQuery={searchQuery}
           activeColor={workspaceColor}
           iconSize={iconSize}
@@ -142,5 +169,5 @@ export const MainWorkspace: React.FC<MainWorkspaceFullProps> = ({
         />
       </div>
     </main>
-  )
-}
+  );
+};

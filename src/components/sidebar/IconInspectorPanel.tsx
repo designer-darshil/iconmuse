@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Download, Copy, Sliders, Code, Sparkles, Check } from "lucide-react";
 import type { IconItem } from "../../types";
+import { copyToClipboard } from "../../utils/copyToClipboard";
 
 export interface IconInspectorPanelProps {
   selectedIcon?: IconItem | null;
@@ -18,18 +19,26 @@ export const IconInspectorPanel: React.FC<IconInspectorPanelProps> = ({
 
   const IconComponent = selectedIcon?.component || Sparkles;
 
-  const handleCopySvg = () => {
+  const handleCopySvg = async () => {
     const code = `<svg xmlns="http://www.w3.org/2000/svg" width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${activeColor}" stroke-width="${strokeWeight}" stroke-linecap="round" stroke-linejoin="round"><desc>${selectedIcon?.name || "Iconmuse Icon"}</desc></svg>`;
-    navigator.clipboard?.writeText(code);
-    setHasCopiedSvg(true);
-    setTimeout(() => setHasCopiedSvg(false), 1500);
+    try {
+      await copyToClipboard(code);
+      setHasCopiedSvg(true);
+      setTimeout(() => setHasCopiedSvg(false), 1500);
+    } catch {
+      setHasCopiedSvg(false);
+    }
   };
 
-  const handleCopyJsx = () => {
+  const handleCopyJsx = async () => {
     const code = `<${selectedIcon?.name?.replace(/\s+/g, "") || "Icon"} size={${iconSize}} color="${activeColor}" strokeWidth={${strokeWeight}} />`;
-    navigator.clipboard?.writeText(code);
-    setHasCopiedJsx(true);
-    setTimeout(() => setHasCopiedJsx(false), 1500);
+    try {
+      await copyToClipboard(code);
+      setHasCopiedJsx(true);
+      setTimeout(() => setHasCopiedJsx(false), 1500);
+    } catch {
+      setHasCopiedJsx(false);
+    }
   };
 
   return (

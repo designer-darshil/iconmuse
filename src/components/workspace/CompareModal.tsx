@@ -1,89 +1,91 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import {
-  X,
-  Columns2,
-  Copy,
-  Check,
-} from 'lucide-react'
-import { ICON_CATALOG } from '../../data/iconCatalog'
-import { getIconSvg } from '../../data/iconCatalog'
-import type { IconItem } from '../../types'
-import { cn } from '../../utils/cn'
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { X, Columns2, Copy, Check } from "lucide-react";
+import { ICON_CATALOG } from "../../data/iconCatalog";
+import { getIconSvg } from "../../data/iconCatalog";
+import { copyToClipboard } from "../../utils/copyToClipboard";
+import type { IconItem } from "../../types";
+import { cn } from "../../utils/cn";
 
 export interface CompareModalProps {
-  isOpen: boolean
-  onClose: () => void
-  compareIconIds: string[]
-  activeColor?: string
+  isOpen: boolean;
+  onClose: () => void;
+  compareIconIds: string[];
+  activeColor?: string;
 }
 
 export const CompareModal: React.FC<CompareModalProps> = ({
   isOpen,
   onClose,
   compareIconIds,
-  activeColor = '#0F1116',
+  activeColor = "#0F1116",
 }) => {
-  const [copiedId, setCopiedId] = useState<string | null>(null)
-  const shouldReduceMotion = useReducedMotion()
-  const modalRef = useRef<HTMLDivElement>(null)
-  const previousActiveElement = useRef<HTMLElement | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const shouldReduceMotion = useReducedMotion();
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
 
-  const icons = ICON_CATALOG.filter((icon) => compareIconIds.includes(icon.id))
+  const icons = ICON_CATALOG.filter((icon) => compareIconIds.includes(icon.id));
 
   // Escape listener and focus trapping
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen) return;
 
-    previousActiveElement.current = document.activeElement as HTMLElement
+    previousActiveElement.current = document.activeElement as HTMLElement;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-        return
+      if (e.key === "Escape") {
+        onClose();
+        return;
       }
 
-      if (e.key === 'Tab' && modalRef.current) {
+      if (e.key === "Tab" && modalRef.current) {
         const focusables = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )
-        if (focusables.length === 0) return
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusables.length === 0) return;
 
-        const first = focusables[0]
-        const last = focusables[focusables.length - 1]
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
 
         if (e.shiftKey) {
           if (document.activeElement === first) {
-            e.preventDefault()
-            last.focus()
+            e.preventDefault();
+            last.focus();
           }
         } else {
           if (document.activeElement === last) {
-            e.preventDefault()
-            first.focus()
+            e.preventDefault();
+            first.focus();
           }
         }
       }
-    }
+    };
 
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener("keydown", handleKeyDown);
 
     // Focus close button initially
-    const closeBtn = modalRef.current?.querySelector<HTMLButtonElement>('button[aria-label="Close comparison modal"]')
-    closeBtn?.focus()
+    const closeBtn = modalRef.current?.querySelector<HTMLButtonElement>(
+      'button[aria-label="Close comparison modal"]',
+    );
+    closeBtn?.focus();
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      previousActiveElement.current?.focus?.()
-    }
-  }, [isOpen, onClose])
+      window.removeEventListener("keydown", handleKeyDown);
+      previousActiveElement.current?.focus?.();
+    };
+  }, [isOpen, onClose]);
 
-  const handleCopySvg = (icon: IconItem) => {
-    const code = getIconSvg(icon, activeColor, 24)
-    navigator.clipboard?.writeText(code)
-    setCopiedId(icon.id)
-    setTimeout(() => setCopiedId(null), 1500)
-  }
+  const handleCopySvg = async (icon: IconItem) => {
+    const code = getIconSvg(icon, activeColor, 24);
+    try {
+      await copyToClipboard(code);
+      setCopiedId(icon.id);
+      setTimeout(() => setCopiedId(null), 1500);
+    } catch {
+      setCopiedId(null);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -106,10 +108,21 @@ export const CompareModal: React.FC<CompareModalProps> = ({
             role="dialog"
             aria-modal="true"
             aria-labelledby="compare-modal-title"
-            initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.98, y: shouldReduceMotion ? 0 : 8 }}
+            initial={{
+              opacity: 0,
+              scale: shouldReduceMotion ? 1 : 0.98,
+              y: shouldReduceMotion ? 0 : 8,
+            }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.98, y: shouldReduceMotion ? 0 : 8 }}
-            transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: 'easeOut' }}
+            exit={{
+              opacity: 0,
+              scale: shouldReduceMotion ? 1 : 0.98,
+              y: shouldReduceMotion ? 0 : 8,
+            }}
+            transition={{
+              duration: shouldReduceMotion ? 0 : 0.2,
+              ease: "easeOut",
+            }}
             className="relative z-10 w-full max-w-4xl bg-white rounded-[24px] shadow-2xl border border-[#E7E7EA] overflow-hidden flex flex-col max-h-[90vh]"
           >
             {/* Modal Header */}
@@ -119,11 +132,15 @@ export const CompareModal: React.FC<CompareModalProps> = ({
                   <Columns2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 id="compare-modal-title" className="text-sm font-bold text-[#0F1116] m-0">
+                  <h3
+                    id="compare-modal-title"
+                    className="text-sm font-bold text-[#0F1116] m-0"
+                  >
                     Side-by-Side Icon Comparison
                   </h3>
                   <p className="text-[11px] text-[#8E8E93] m-0">
-                    Comparing {icons.length} vector glyphs across optical sizes and source sets
+                    Comparing {icons.length} vector glyphs across optical sizes
+                    and source sets
                   </p>
                 </div>
               </div>
@@ -140,15 +157,18 @@ export const CompareModal: React.FC<CompareModalProps> = ({
 
             {/* Comparison Columns */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-              <div className={cn(
-                'grid gap-4',
-                icons.length === 2 && 'grid-cols-1 sm:grid-cols-2',
-                icons.length === 3 && 'grid-cols-1 sm:grid-cols-3',
-                icons.length >= 4 && 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
-              )}>
+              <div
+                className={cn(
+                  "grid gap-4",
+                  icons.length === 2 && "grid-cols-1 sm:grid-cols-2",
+                  icons.length === 3 && "grid-cols-1 sm:grid-cols-3",
+                  icons.length >= 4 &&
+                    "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
+                )}
+              >
                 {icons.map((icon) => {
-                  const IconComp = icon.component
-                  const isCopied = copiedId === icon.id
+                  const IconComp = icon.component;
+                  const isCopied = copiedId === icon.id;
 
                   return (
                     <div
@@ -170,16 +190,31 @@ export const CompareModal: React.FC<CompareModalProps> = ({
                       {/* Optical Scales: 32px, 24px, 16px */}
                       <div className="flex items-center justify-around py-2 px-3 rounded-[12px] bg-white border border-[#E7E7EA]">
                         <div className="flex flex-col items-center gap-1">
-                          <IconComp className="w-8 h-8" style={{ color: activeColor }} />
-                          <span className="text-[9px] font-mono text-[#8E8E93]">32px</span>
+                          <IconComp
+                            className="w-8 h-8"
+                            style={{ color: activeColor }}
+                          />
+                          <span className="text-[9px] font-mono text-[#8E8E93]">
+                            32px
+                          </span>
                         </div>
                         <div className="flex flex-col items-center gap-1">
-                          <IconComp className="w-6 h-6" style={{ color: activeColor }} />
-                          <span className="text-[9px] font-mono text-[#8E8E93]">24px</span>
+                          <IconComp
+                            className="w-6 h-6"
+                            style={{ color: activeColor }}
+                          />
+                          <span className="text-[9px] font-mono text-[#8E8E93]">
+                            24px
+                          </span>
                         </div>
                         <div className="flex flex-col items-center gap-1">
-                          <IconComp className="w-4 h-4" style={{ color: activeColor }} />
-                          <span className="text-[9px] font-mono text-[#8E8E93]">16px</span>
+                          <IconComp
+                            className="w-4 h-4"
+                            style={{ color: activeColor }}
+                          />
+                          <span className="text-[9px] font-mono text-[#8E8E93]">
+                            16px
+                          </span>
                         </div>
                       </div>
 
@@ -190,7 +225,9 @@ export const CompareModal: React.FC<CompareModalProps> = ({
                         </h4>
                         <div className="flex items-center justify-between text-[11px] text-[#8E8E93] pt-1">
                           <span>Source</span>
-                          <span className="font-semibold text-[#0F1116]">{icon.source}</span>
+                          <span className="font-semibold text-[#0F1116]">
+                            {icon.source}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between text-[11px] text-[#8E8E93]">
                           <span>Category</span>
@@ -221,7 +258,7 @@ export const CompareModal: React.FC<CompareModalProps> = ({
                         )}
                       </button>
                     </div>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -229,5 +266,5 @@ export const CompareModal: React.FC<CompareModalProps> = ({
         </div>
       )}
     </AnimatePresence>
-  )
-}
+  );
+};

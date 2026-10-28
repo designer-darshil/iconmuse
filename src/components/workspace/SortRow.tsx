@@ -14,6 +14,7 @@ export interface SortRowProps {
   onSelectSort: (sort: SortOption) => void
   compareCount: number
   onClearCompare?: () => void
+  onOpenCompare?: () => void
   viewDensity: ViewDensity
   onChangeViewDensity: (density: ViewDensity) => void
 }
@@ -24,6 +25,7 @@ export const SortRow: React.FC<SortRowProps> = ({
   onSelectSort,
   compareCount,
   onClearCompare,
+  onOpenCompare,
   viewDensity,
   onChangeViewDensity,
 }) => {
@@ -34,9 +36,9 @@ export const SortRow: React.FC<SortRowProps> = ({
   ]
 
   return (
-    <div className="w-full shrink-0 bg-white border-b border-[#E7E7EA] px-4 md:px-6 flex items-center justify-between gap-4 select-none">
+    <div className="mobile-sort-row w-full shrink-0 bg-white border-b border-[#E7E7EA] px-3 md:px-6 flex items-center justify-between gap-4 select-none">
       {/* Horizontally scrollable tabs list on mobile */}
-      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth py-1">
+      <div className="desktop-sort-controls flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth py-1">
         {tabs.map((tab) => {
           const isActive = activeSort === tab.id
           return (
@@ -44,6 +46,7 @@ export const SortRow: React.FC<SortRowProps> = ({
               key={tab.id}
               type="button"
               aria-pressed={isActive}
+              aria-label={tab.id === 'all' ? `All ${totalCount} icons` : tab.label}
               onClick={() => onSelectSort(tab.id)}
               className={cn(
                 'flex h-[48px] flex-none items-center justify-center gap-2 border-b-2 px-3 text-xs tracking-tight whitespace-nowrap transition-colors',
@@ -69,11 +72,13 @@ export const SortRow: React.FC<SortRowProps> = ({
       </div>
 
       {/* Right side: Compare button with selection count & detailed/compact view toggle */}
-      <div className="flex items-center gap-2 shrink-0 py-2">
+      <div className="desktop-sort-actions flex items-center gap-2 shrink-0 py-2">
         {/* Compare Button */}
         <div className="flex items-center">
           <button
             type="button"
+            onClick={onOpenCompare}
+            disabled={compareCount < 2}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border',
               compareCount > 0
@@ -128,6 +133,42 @@ export const SortRow: React.FC<SortRowProps> = ({
           >
             <LayoutGrid className="w-3.5 h-3.5" />
           </button>
+        </div>
+      </div>
+
+      <div className="mobile-sort-controls" aria-label="Result controls">
+        <span className="mobile-result-count"><strong>{totalCount.toLocaleString()}</strong> results</span>
+        <label className="sr-only" htmlFor="mobile-sort-select">Sort results</label>
+        <select
+          id="mobile-sort-select"
+          value={activeSort}
+          onChange={(event) => onSelectSort(event.target.value as SortOption)}
+          className="mobile-sort-select"
+        >
+          <option value="all">Default order</option>
+          <option value="name-asc">Name A–Z</option>
+          <option value="name-desc">Name Z–A</option>
+        </select>
+        <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onOpenCompare}
+          disabled={compareCount < 2}
+          aria-label={`Compare ${compareCount} selected icons`}
+          title={compareCount < 2 ? "Select at least two items to compare" : "Compare selected items"}
+          className="mobile-sort-icon-button"
+        >
+          <Columns2 aria-hidden="true" />
+          {compareCount > 0 && <span>{compareCount}</span>}
+        </button>
+        <button
+          type="button"
+          onClick={() => onChangeViewDensity(viewDensity === "normal" ? "compact" : "normal")}
+          aria-label={`Switch to ${viewDensity === "normal" ? "compact" : "spacious"} grid`}
+          className="mobile-sort-icon-button"
+        >
+          {viewDensity === "normal" ? <LayoutGrid aria-hidden="true" /> : <Grid3X3 aria-hidden="true" />}
+        </button>
         </div>
       </div>
     </div>

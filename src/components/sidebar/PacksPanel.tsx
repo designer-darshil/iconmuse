@@ -1,18 +1,13 @@
-import React from 'react'
-import {
-  Boxes,
-  Check,
-  ArrowRight,
-  RotateCcw,
-} from 'lucide-react'
-import { ICON_PACKS, type IconPack } from '../../data/iconPacks'
-import { ICON_CATALOG } from '../../data/iconCatalog'
-import { cn } from '../../utils/cn'
+import React from "react";
+import { Boxes, Check, ArrowRight, RotateCcw } from "lucide-react";
+import { ICON_PACKS, type IconPack } from "../../data/iconPacks";
+import { ICON_CATALOG } from "../../data/iconCatalog";
+import { cn } from "../../utils/cn";
 
 export interface PacksPanelProps {
-  activePackId: string | null
-  onSelectPack: (packId: string | null) => void
-  packs?: IconPack[]
+  activePackId: string | null;
+  onSelectPack: (packId: string | null) => void;
+  packs?: IconPack[];
 }
 
 export const PacksPanel: React.FC<PacksPanelProps> = ({
@@ -47,9 +42,11 @@ export const PacksPanel: React.FC<PacksPanelProps> = ({
       {/* Packs List */}
       <div className="flex flex-col gap-3">
         {packs.map((pack) => {
-          const isActive = activePackId === pack.id
-          const firstIcon = ICON_CATALOG.find((icon) => pack.iconIds.includes(icon.id))
-          const CoverIcon = firstIcon?.component ?? Boxes
+          const isActive = activePackId === pack.id;
+          const firstIcon = ICON_CATALOG.find((icon) =>
+            pack.iconIds.includes(icon.id),
+          );
+          const CoverIcon = firstIcon?.component ?? Boxes;
 
           return (
             <div
@@ -57,12 +54,14 @@ export const PacksPanel: React.FC<PacksPanelProps> = ({
               role="button"
               tabIndex={0}
               onClick={() => onSelectPack(isActive ? null : pack.id)}
-              onKeyDown={(e) => e.key === 'Enter' && onSelectPack(isActive ? null : pack.id)}
+              onKeyDown={(e) =>
+                e.key === "Enter" && onSelectPack(isActive ? null : pack.id)
+              }
               className={cn(
-                'group p-3 rounded-xl border cursor-pointer text-left transition-colors duration-150',
+                "group p-3 rounded-xl border cursor-pointer text-left transition-colors duration-150",
                 isActive
-                  ? 'bg-[#F8F6FF] border-[#7141E8]/50'
-                  : 'bg-white border-[#E7E7EA] hover:bg-[#FAFAFB] hover:border-[#D8D8DC]'
+                  ? "bg-[#F8F6FF] border-[#7141E8]/50"
+                  : "bg-white border-[#E7E7EA] hover:bg-[#FAFAFB] hover:border-[#D8D8DC]",
               )}
             >
               {/* Top Row: Cover Gradient Block + Count Badge */}
@@ -70,7 +69,10 @@ export const PacksPanel: React.FC<PacksPanelProps> = ({
                 {/* Visual Cover-Color Block */}
                 <div
                   className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 border border-black/5"
-                  style={{ backgroundColor: `${pack.accentColor}14`, color: pack.accentColor }}
+                  style={{
+                    backgroundColor: `${pack.accentColor}14`,
+                    color: pack.accentColor,
+                  }}
                 >
                   <CoverIcon className="w-[18px] h-[18px]" />
                 </div>
@@ -97,8 +99,10 @@ export const PacksPanel: React.FC<PacksPanelProps> = ({
               <div className="flex justify-end mt-2 text-[11px]">
                 <span
                   className={cn(
-                    'font-medium inline-flex items-center gap-1',
-                    isActive ? 'text-[#7141E8]' : 'text-[#777780] group-hover:text-[#0F1116]'
+                    "font-medium inline-flex items-center gap-1",
+                    isActive
+                      ? "text-[#7141E8]"
+                      : "text-[#777780] group-hover:text-[#0F1116]",
                   )}
                 >
                   {isActive ? (
@@ -115,9 +119,9 @@ export const PacksPanel: React.FC<PacksPanelProps> = ({
                 </span>
               </div>
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
-}
+  );
+};

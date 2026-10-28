@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
   Copy,
   Bookmark,
@@ -19,6 +18,7 @@ function getIllustrationTileSvg(svg: string) {
 export interface IconTileProps {
   icon: IconItem
   activeColor: string
+  iconSize: number
   isSaved: boolean
   isCompared: boolean
   onToggleSave: (id: string) => void
@@ -32,6 +32,7 @@ export interface IconTileProps {
 export const IconTile: React.FC<IconTileProps> = ({
   icon,
   activeColor,
+  iconSize,
   isSaved,
   isCompared,
   onToggleSave,
@@ -40,9 +41,7 @@ export const IconTile: React.FC<IconTileProps> = ({
   onSelectIcon,
   isSelected,
 }) => {
-  const [isHovered, setIsHovered] = useState(false)
   const [hasCopied, setHasCopied] = useState(false)
-  const shouldReduceMotion = useReducedMotion()
   const IconComponent = icon.component
   const isIllustration = icon.category === 'Illustrations'
 
@@ -69,20 +68,17 @@ export const IconTile: React.FC<IconTileProps> = ({
       tabIndex={0}
       onClick={() => onSelectIcon(icon)}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectIcon(icon)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onFocus={() => setIsHovered(true)}
-      onBlur={() => setIsHovered(false)}
       aria-label={`${icon.name} icon from ${icon.source}`}
       className={cn(
-        'group relative flex flex-col items-center justify-between h-[120px] p-2.5 rounded-[14px] cursor-pointer select-none transition-colors duration-150',
+        'icon-tile group relative flex flex-col items-center justify-between h-[120px] p-2.5 rounded-[14px] cursor-pointer select-none transition-colors duration-150 [content-visibility:auto] [contain-intrinsic-size:120px]',
+        isIllustration && 'is-illustration',
         // Generous white space: icons float directly on the canvas without boxy card borders
         'bg-transparent hover:bg-[#F7F7F8]/80 focus-visible:bg-[#F7F7F8]',
         isSelected && 'bg-[#F7F7F8] ring-1 ring-[#7141E8]/40'
       )}
     >
       {/* Centered Icon Preview */}
-      <div className="flex-1 flex items-center justify-center w-full pt-1">
+      <div className="icon-tile__preview flex-1 flex items-center justify-center w-full pt-1">
         {isIllustration ? (
           <div
             aria-hidden="true"
@@ -91,8 +87,12 @@ export const IconTile: React.FC<IconTileProps> = ({
           />
         ) : (
           <IconComponent
-            className="h-7 w-7 transition-transform duration-150 group-hover:scale-105"
-            style={{ color: activeColor }}
+            className="shrink-0 transition-transform duration-150 group-hover:scale-105"
+            style={{
+              color: activeColor,
+              width: `${iconSize}px`,
+              height: `${iconSize}px`,
+            }}
             strokeWidth={icon.strokeWidth || 1.8}
           />
         )}
@@ -100,28 +100,20 @@ export const IconTile: React.FC<IconTileProps> = ({
 
       {/* Ellipsized Name */}
       <div className="w-full text-center px-1">
-        <p className="text-[12px] font-medium text-[#0F1116] truncate leading-tight">
+        <p className="icon-tile__name text-[12px] font-medium text-[#0F1116] truncate leading-tight">
           {icon.name}
         </p>
       </div>
 
       {/* Small Neutral Source Pill */}
-      <div className="mt-1">
+      <div className="icon-tile__source mt-1 transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
         <span className="text-[10px] font-medium text-[#8E8E93] bg-[#F7F7F8] border border-[#E7E7EA] px-2 py-0.5 rounded-full transition-colors group-hover:border-[#D8D8DC]">
           {icon.source}
         </span>
       </div>
 
       {/* Hover Quick-Action Layer: fade in softly with 1px hover lift */}
-      <AnimatePresence>
-        {isHovered && (
-          <motion.div
-            initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 2 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: shouldReduceMotion ? 0 : 2 }}
-            transition={{ duration: 0.12 }}
-            className="absolute inset-x-2 -bottom-2 z-20 flex items-center justify-center gap-1 p-1 bg-[#0F1116] text-white rounded-full shadow-[0_4px_16px_rgba(15,17,22,0.18)]"
-          >
+      <div className="icon-tile__actions pointer-events-none absolute inset-x-2 bottom-1 z-20 flex translate-y-0.5 items-center justify-center gap-1 rounded-full bg-[#0F1116] p-1 text-white opacity-0 shadow-[0_4px_16px_rgba(15,17,22,0.18)] transition-all duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
             {/* Copy SVG Action */}
             <button
               type="button"
@@ -163,9 +155,7 @@ export const IconTile: React.FC<IconTileProps> = ({
             >
               <Columns2 className="w-3.5 h-3.5" />
             </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </div>
     </div>
   )
 }

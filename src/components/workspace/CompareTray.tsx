@@ -1,17 +1,14 @@
-import React from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import {
-  Columns2,
-  X,
-} from 'lucide-react'
-import { ICON_CATALOG } from '../../data/iconCatalog'
+import React from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { Columns2, X } from "lucide-react";
+import { ICON_CATALOG } from "../../data/iconCatalog";
 
 export interface CompareTrayProps {
-  compareIconIds: string[]
-  onRemoveCompare: (id: string) => void
-  onClearCompare: () => void
-  onOpenCompareModal: () => void
-  activeColor?: string
+  compareIconIds: string[];
+  onRemoveCompare: (id: string) => void;
+  onClearCompare: () => void;
+  onOpenCompareModal: () => void;
+  activeColor?: string;
 }
 
 export const CompareTray: React.FC<CompareTrayProps> = ({
@@ -19,32 +16,51 @@ export const CompareTray: React.FC<CompareTrayProps> = ({
   onRemoveCompare,
   onClearCompare,
   onOpenCompareModal,
-  activeColor = '#0F1116',
+  activeColor = "#0F1116",
 }) => {
-  const shouldReduceMotion = useReducedMotion()
-  const isVisible = compareIconIds.length >= 2
-  const selectedIcons = ICON_CATALOG.filter((icon) => compareIconIds.includes(icon.id))
+  const shouldReduceMotion = useReducedMotion();
+  const isVisible = compareIconIds.length >= 2;
+  const selectedIcons = ICON_CATALOG.filter((icon) =>
+    compareIconIds.includes(icon.id),
+  );
 
   return (
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 24, scale: shouldReduceMotion ? 1 : 0.98 }}
+          initial={{
+            opacity: 0,
+            y: shouldReduceMotion ? 0 : 24,
+            scale: shouldReduceMotion ? 1 : 0.98,
+          }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: shouldReduceMotion ? 0 : 20, scale: shouldReduceMotion ? 1 : 0.98 }}
-          transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: 'easeOut' }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-2xl bg-[#0F1116] text-white p-3 md:px-5 md:py-3.5 rounded-[20px] shadow-[0_16px_40px_rgba(15,17,22,0.32)] border border-white/10 flex items-center justify-between gap-4 select-none"
+          exit={{
+            opacity: 0,
+            y: shouldReduceMotion ? 0 : 20,
+            scale: shouldReduceMotion ? 1 : 0.98,
+          }}
+          transition={{
+            duration: shouldReduceMotion ? 0 : 0.2,
+            ease: "easeOut",
+          }}
+          className="compare-tray fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[94%] max-w-2xl bg-[#0F1116] text-white p-3 md:px-5 md:py-3.5 rounded-[20px] shadow-[0_16px_40px_rgba(15,17,22,0.32)] border border-white/10 flex items-center justify-between gap-4 select-none"
         >
           {/* Left: Selected Icons with Source Labels & Remove controls */}
           <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar py-0.5">
             {selectedIcons.map((icon) => {
-              const IconComp = icon.component
+              const IconComp = icon.component;
               return (
                 <div
                   key={icon.id}
                   className="group relative flex items-center gap-2 pl-2 pr-1.5 py-1 rounded-full bg-white/10 border border-white/10 hover:border-white/20 transition-all shrink-0"
                 >
-                  <IconComp className="w-4 h-4 text-white" style={{ color: activeColor === '#0F1116' ? '#FFFFFF' : activeColor }} />
+                  <IconComp
+                    className="w-4 h-4 text-white"
+                    style={{
+                      color:
+                        activeColor === "#0F1116" ? "#FFFFFF" : activeColor,
+                    }}
+                  />
 
                   <span className="text-xs font-medium text-white/90 max-w-[80px] sm:max-w-[100px] truncate">
                     {icon.name}
@@ -64,7 +80,7 @@ export const CompareTray: React.FC<CompareTrayProps> = ({
                     <X className="w-3 h-3" />
                   </button>
                 </div>
-              )
+              );
             })}
 
             {selectedIcons.length < 4 && (
@@ -96,5 +112,5 @@ export const CompareTray: React.FC<CompareTrayProps> = ({
         </motion.div>
       )}
     </AnimatePresence>
-  )
-}
+  );
+};

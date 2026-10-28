@@ -1,28 +1,42 @@
-import React from 'react'
-import {
-  Compass,
-  Boxes,
-  Bookmark,
-  Puzzle,
-  HelpCircle,
-} from 'lucide-react'
-import type { LeftNavRailProps } from '../../types'
-import { cn } from '../../utils/cn'
+import React from "react";
+import { Compass, Boxes, Bookmark, Puzzle, HelpCircle } from "lucide-react";
+import type { LeftNavRailProps } from "../../types";
+import { cn } from "../../utils/cn";
 
 export const LeftNavRail: React.FC<LeftNavRailProps> = ({
   activeItemId,
   onSelectItem,
 }) => {
   const primaryControls = [
-    { id: 'discover', label: 'Discover', fullLabel: 'Discover / Filters', icon: Compass },
-    { id: 'collections', label: 'Packs', fullLabel: 'Collections / Packs', icon: Boxes },
-    { id: 'saved', label: 'Saved', fullLabel: 'Saved Favorites', icon: Bookmark },
-  ]
+    {
+      id: "discover",
+      label: "Discover",
+      fullLabel: "Discover / Filters",
+      icon: Compass,
+    },
+    {
+      id: "collections",
+      label: "Packs",
+      fullLabel: "Collections / Packs",
+      icon: Boxes,
+    },
+    {
+      id: "saved",
+      label: "Saved",
+      fullLabel: "Saved Favorites",
+      icon: Bookmark,
+    },
+  ];
 
   const lowerControls = [
-    { id: 'extensions', label: 'Plugins', fullLabel: 'Extensions & Plugins', icon: Puzzle },
-    { id: 'help', label: 'Help', fullLabel: 'Help & Docs', icon: HelpCircle },
-  ]
+    {
+      id: "extensions",
+      label: "Plugins",
+      fullLabel: "Extensions & Plugins",
+      icon: Puzzle,
+    },
+    { id: "help", label: "Help", fullLabel: "Help & Docs", icon: HelpCircle },
+  ];
 
   return (
     <aside
@@ -32,8 +46,8 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
       {/* Upper Controls */}
       <div className="flex flex-col items-center gap-3 w-full">
         {primaryControls.map((item) => {
-          const isActive = activeItemId === item.id
-          const Icon = item.icon
+          const isActive = activeItemId === item.id;
+          const Icon = item.icon;
 
           return (
             <div
@@ -50,10 +64,10 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
                 {/* Dark circular icon background when active */}
                 <div
                   className={cn(
-                    'w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150',
+                    "w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150",
                     isActive
-                      ? 'bg-[#0F1116] text-white shadow-xs'
-                      : 'bg-transparent text-[#8E8E93] group-hover:bg-white group-hover:text-[#0F1116]'
+                      ? "bg-[#0F1116] text-white shadow-xs"
+                      : "bg-transparent text-[#8E8E93] group-hover:bg-white group-hover:text-[#0F1116]",
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -62,26 +76,25 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
                 {/* Small label */}
                 <span
                   className={cn(
-                    'text-[10px] mt-1 tracking-tight text-center transition-colors',
+                    "text-xs mt-1 tracking-tight text-center transition-colors",
                     isActive
-                      ? 'font-bold text-[#0F1116]'
-                      : 'font-medium text-[#8E8E93] group-hover:text-[#0F1116]'
+                      ? "font-bold text-[#0F1116]"
+                      : "font-medium text-[#8E8E93] group-hover:text-[#0F1116]",
                   )}
                 >
                   {item.label}
                 </span>
               </button>
-
             </div>
-          )
+          );
         })}
       </div>
 
       {/* Lower Controls: Extensions & Help */}
       <div className="flex flex-col items-center gap-3 w-full pt-3 border-t border-[#E7E7EA]/80">
         {lowerControls.map((item) => {
-          const isActive = activeItemId === item.id
-          const Icon = item.icon
+          const isActive = activeItemId === item.id;
+          const Icon = item.icon;
 
           return (
             <div
@@ -97,10 +110,10 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
               >
                 <div
                   className={cn(
-                    'w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150',
+                    "w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150",
                     isActive
-                      ? 'bg-[#0F1116] text-white shadow-xs'
-                      : 'bg-transparent text-[#8E8E93] group-hover:bg-white group-hover:text-[#0F1116]'
+                      ? "bg-[#0F1116] text-white shadow-xs"
+                      : "bg-transparent text-[#8E8E93] group-hover:bg-white group-hover:text-[#0F1116]",
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -108,20 +121,19 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
 
                 <span
                   className={cn(
-                    'text-[10px] mt-1 tracking-tight text-center transition-colors',
+                    "text-[10px] mt-1 tracking-tight text-center transition-colors",
                     isActive
-                      ? 'font-bold text-[#0F1116]'
-                      : 'font-medium text-[#8E8E93] group-hover:text-[#0F1116]'
+                      ? "font-bold text-[#0F1116]"
+                      : "font-medium text-[#8E8E93] group-hover:text-[#0F1116]",
                   )}
                 >
                   {item.label}
                 </span>
               </button>
-
             </div>
-          )
+          );
         })}
       </div>
     </aside>
-  )
-}
+  );
+};

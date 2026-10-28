@@ -5,6 +5,7 @@ import {
   ChevronDown,
   X,
   Check,
+  SlidersHorizontal,
 } from 'lucide-react'
 import type { CategoryItem } from '../../types'
 import { cn } from '../../utils/cn'
@@ -14,10 +15,14 @@ export interface MainToolbarProps {
   categories: CategoryItem[]
   activeCategory: string
   onSelectCategory: (slug: string) => void
+  sourceCounts: Record<string, number>
+  selectedSources: string[]
+  onToggleSource: (source: string) => void
   searchQuery: string
   onSearchChange: (query: string) => void
   activeColor: string
   onSelectColor: (color: string) => void
+  onOpenFilters?: () => void
 }
 
 export const COLOR_OPTIONS = [
@@ -34,16 +39,47 @@ export const MainToolbar: React.FC<MainToolbarProps> = ({
   categories,
   activeCategory,
   onSelectCategory,
+  sourceCounts,
+  selectedSources,
+  onToggleSource,
   searchQuery,
   onSearchChange,
   activeColor,
   onSelectColor,
+  onOpenFilters,
 }) => {
   const [isCategoryOpen, setIsCategoryOpen] = useState(false)
   const [isColorOpen, setIsColorOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const activeCategoryObj = categories.find((c) => c.slug === activeCategory) || categories[0]
+  const librarySources = Object.entries(sourceCounts)
+    .filter(([, count]) => count > 0)
+    .sort(([a], [b]) => a.localeCompare(b))
+  const categoryLabel = selectedSources.length === 1
+    ? `Library: ${selectedSources[0]}`
+    : selectedSources.length > 1
+      ? `Libraries: ${selectedSources.length}`
+      : `Category: ${activeCategoryObj?.name || 'All Icons'}`
+
+  const renderLibraryOptions = () => librarySources.map(([source, count]) => {
+    const selected = selectedSources.includes(source)
+    return (
+      <button
+        key={source}
+        type="button"
+        aria-pressed={selected}
+        onClick={() => onToggleSource(source)}
+        className={cn(
+          'w-full flex items-center justify-between gap-4 px-3.5 py-2 text-xs text-left transition-colors hover:bg-[#F7F7F8]',
+          selected ? 'font-semibold text-[#7141E8]' : 'text-[#0F1116]',
+        )}
+      >
+        <span className="truncate">{source}</span>
+        <span className="shrink-0 font-mono text-[10px] text-[#8E8E93]">{count}</span>
+      </button>
+    )
+  })
 
   // Global ⌘K shortcut listener
   useEffect(() => {
@@ -57,25 +93,48 @@ export const MainToolbar: React.FC<MainToolbarProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  useEffect(() => {
+    if (!isCategoryOpen && !isColorOpen) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node
+      const isInsideCategory = Array.from(
+        document.querySelectorAll('[data-iconmuse-menu="category"]'),
+      ).some((menu) => menu.contains(target))
+      const isInsideColor = Array.from(
+        document.querySelectorAll('[data-iconmuse-menu="color"]'),
+      ).some((menu) => menu.contains(target))
+
+      if (!isInsideCategory) setIsCategoryOpen(false)
+      if (!isInsideColor) setIsColorOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [isCategoryOpen, isColorOpen])
+
   return (
-    <div className="w-full shrink-0 bg-white px-4 md:px-6 pt-5 pb-3 flex flex-col gap-3 select-none">
+      <div className="main-toolbar w-full shrink-0 bg-white px-3 md:px-6 pt-3 md:pt-5 pb-2 md:pb-3 flex flex-col gap-2 md:gap-3 select-none">
       {/* Desktop / Responsive row: Category + Search Input + Recolor */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
         {/* 1. Category Dropdown Pill */}
-        <div className="relative shrink-0 hidden md:block">
+        <div className="relative shrink-0 hidden md:block" data-iconmuse-menu="category">
           <button
             type="button"
-            onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+            onClick={() => {
+              setIsCategoryOpen((isOpen) => !isOpen)
+              setIsColorOpen(false)
+            }}
             className="h-12 px-4 rounded-full bg-[#F7F7F8] hover:bg-[#F1F1F3] border border-[#E7E7EA] hover:border-[#D8D8DC] text-xs font-semibold text-[#0F1116] flex items-center gap-2 transition-all shadow-xs"
           >
-            <span>Category: {activeCategoryObj?.name || 'All Icons'}</span>
+            <span className="max-w-48 truncate">{categoryLabel}</span>
             <ChevronDown className={cn('w-3.5 h-3.5 text-[#8E8E93] transition-transform duration-150', isCategoryOpen && 'rotate-180')} />
           </button>
 
           {isCategoryOpen && (
-            <div className="absolute left-0 mt-2 w-56 bg-white border border-[#E7E7EA] rounded-[16px] shadow-xl py-2 z-50 max-h-72 overflow-y-auto">
-              <div className="px-3 py-1 text-[11px] font-semibold text-[#8E8E93] uppercase tracking-wider">
-                Filter by Category
+            <div className="absolute left-0 mt-2 w-64 bg-white border border-[#E7E7EA] rounded-[16px] shadow-xl py-2 z-50 max-h-[min(70vh,32rem)] overflow-y-auto">
+              <div className="px-3.5 py-1.5 text-[10px] font-semibold text-[#8E8E93] uppercase tracking-wider">
+                Browse by category
               </div>
               {categories.map((cat) => {
                 const isSelected = cat.slug === activeCategory
@@ -101,6 +160,11 @@ export const MainToolbar: React.FC<MainToolbarProps> = ({
                   </button>
                 )
               })}
+              <div className="mx-3.5 my-2 border-t border-[#E7E7EA]" />
+              <div className="px-3.5 py-1.5 text-[10px] font-semibold text-[#8E8E93] uppercase tracking-wider">
+                Icon library provider
+              </div>
+              {renderLibraryOptions()}
             </div>
           )}
         </div>
@@ -141,10 +205,13 @@ export const MainToolbar: React.FC<MainToolbarProps> = ({
         </div>
 
         {/* 3. Recolor Dropdown with Circular Multicolor Mark (Desktop) */}
-        <div className="relative shrink-0 hidden md:block">
+        <div className="relative shrink-0 hidden md:block" data-iconmuse-menu="color">
           <button
             type="button"
-            onClick={() => setIsColorOpen(!isColorOpen)}
+            onClick={() => {
+              setIsColorOpen((isOpen) => !isOpen)
+              setIsCategoryOpen(false)
+            }}
             className="h-12 px-4 rounded-full bg-[#F7F7F8] hover:bg-[#F1F1F3] border border-[#E7E7EA] hover:border-[#D8D8DC] text-xs font-semibold text-[#0F1116] flex items-center gap-2 transition-all shadow-xs"
           >
             {/* Circular multicolor mark */}
@@ -197,56 +264,36 @@ export const MainToolbar: React.FC<MainToolbarProps> = ({
         </div>
       </div>
 
-      {/* Mobile Compact Toolbar Row: Category and Recolor */}
+      {/* Mobile actions: filters and the active workspace color */}
       <div className="flex md:hidden items-center justify-between gap-2 pt-1">
-        {/* Mobile Category Dropdown */}
-        <div className="relative flex-1">
+        <button
+          type="button"
+          onClick={onOpenFilters}
+          className="mobile-filter-action inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-[#E7E7EA] bg-[#F7F7F8] px-3 text-xs font-semibold text-[#0F1116]"
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5 text-[#7141E8]" />
+          Filters
+        </button>
+
+        <div className="relative shrink-0" data-iconmuse-menu="color">
           <button
             type="button"
-            onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-            className="w-full h-10 px-3 rounded-full bg-[#F7F7F8] border border-[#E7E7EA] text-xs font-semibold text-[#0F1116] flex items-center justify-between"
-          >
-            <span className="truncate">Category: {activeCategoryObj?.name}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-[#8E8E93] shrink-0 ml-1" />
-          </button>
-
-          {isCategoryOpen && (
-            <div className="absolute left-0 mt-2 w-full bg-white border border-[#E7E7EA] rounded-[14px] shadow-xl py-2 z-50 max-h-60 overflow-y-auto">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => {
-                    onSelectCategory(cat.slug)
-                    setIsCategoryOpen(false)
-                  }}
-                  className="w-full flex items-center justify-between px-3 py-2 text-xs text-[#0F1116] hover:bg-[#F7F7F8]"
-                >
-                  <span>{cat.name}</span>
-                  <span className="text-[10px] text-[#8E8E93]">{cat.count}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Mobile Recolor Button */}
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setIsColorOpen(!isColorOpen)}
-            className="h-10 px-3 rounded-full bg-[#F7F7F8] border border-[#E7E7EA] text-xs font-semibold text-[#0F1116] flex items-center gap-2"
+            onClick={() => {
+              setIsColorOpen((isOpen) => !isOpen)
+              setIsCategoryOpen(false)
+            }}
+            aria-expanded={isColorOpen}
+            className="mobile-color-action inline-flex h-10 items-center gap-2 rounded-xl border border-[#E7E7EA] bg-[#F7F7F8] px-3 text-xs font-semibold text-[#0F1116]"
           >
             <span
-              className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
+              className="h-3.5 w-3.5 shrink-0 rounded-full border border-black/10"
               style={{
-                background:
-                  activeColor === '#0F1116'
-                    ? 'conic-gradient(from 180deg at 50% 50%, #FF5F56 0deg, #FFBD2E 72deg, #27C93F 144deg, #7141E8 216deg, #007AFF 288deg, #FF5F56 360deg)'
-                    : activeColor,
+                background: activeColor === '#0F1116'
+                  ? 'conic-gradient(from 180deg at 50% 50%, #FF5F56 0deg, #FFBD2E 72deg, #27C93F 144deg, #7141E8 216deg, #007AFF 288deg, #FF5F56 360deg)'
+                  : activeColor,
               }}
             />
-            <span>Color</span>
+            Color
           </button>
 
           {isColorOpen && (
