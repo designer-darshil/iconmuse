@@ -1,30 +1,31 @@
-import React from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import React from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   X,
   SlidersHorizontal,
   ExternalLink,
   Boxes,
   Bookmark,
-  Sparkles,
-} from 'lucide-react'
-import { FiltersPanel } from '../sidebar/FiltersPanel'
-import { PacksPanel } from '../sidebar/PacksPanel'
-import { SavedPanel } from '../sidebar/SavedPanel'
-import { IconInspectorPanel } from '../sidebar/IconInspectorPanel'
-import { ExtensionsPanel } from '../sidebar/ExtensionsPanel'
-import { HelpPanel } from '../sidebar/HelpPanel'
-import type { RightSidebarProps, RightSidebarPanel } from '../../types'
-import { cn } from '../../utils/cn'
+} from "lucide-react";
+import { FiltersPanel } from "../sidebar/FiltersPanel";
+import { PacksPanel } from "../sidebar/PacksPanel";
+import { SavedPanel } from "../sidebar/SavedPanel";
+import { ExtensionsPanel } from "../sidebar/ExtensionsPanel";
+import { HelpPanel } from "../sidebar/HelpPanel";
+import type { RightSidebarProps, RightSidebarPanel } from "../../types";
+import { cn } from "../../utils/cn";
+import { useOverlayScrollLock } from "../../hooks/useOverlayScrollLock";
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({
   isOpen,
   onClose,
   isOverlay = false,
+  isMobile = false,
+  isFloating = false,
+  onToggleFloating,
   activePanel,
   onSelectPanel,
-  selectedIcon,
-  activeColor = '#0F1116',
+  activeColor = "#0F1116",
   savedIconIds,
   onToggleSave,
   onSelectIcon,
@@ -48,20 +49,20 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   onSelectPack,
   packs,
 }) => {
-  const shouldReduceMotion = useReducedMotion()
+  useOverlayScrollLock(isOverlay && isOpen);
+  const shouldReduceMotion = useReducedMotion();
 
   const panelTitles: Record<RightSidebarPanel, string> = {
-    filters: 'Filters & Customization',
-    inspector: 'Icon Inspector',
-    packs: 'Curated Icon Packs',
-    saved: 'Saved Favorites',
-    extensions: 'Icon Libraries',
-    help: 'Help & Docs',
-  }
+    filters: "Filters & Customization",
+    packs: "Curated Icon Packs",
+    saved: "Saved Favorites",
+    extensions: "Icon Libraries",
+    help: "Help & Docs",
+  };
 
   const renderPanelContent = () => {
     switch (activePanel) {
-      case 'filters':
+      case "filters":
         return (
           <FiltersPanel
             selectedStyles={selectedStyles}
@@ -73,24 +74,26 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             onResetFilters={onResetFilters}
             licenseCounts={licenseCounts}
           />
-        )
-      case 'inspector':
+        );
+      case "extensions":
         return (
-          <IconInspectorPanel selectedIcon={selectedIcon} activeColor={activeColor} />
-        )
-      case 'extensions':
-        return <ExtensionsPanel sourceCounts={sourceCounts} selectedSources={selectedSources} onToggleSource={onToggleSource} />
-      case 'help':
-        return <HelpPanel />
-      case 'packs':
+          <ExtensionsPanel
+            sourceCounts={sourceCounts}
+            selectedSources={selectedSources}
+            onToggleSource={onToggleSource}
+          />
+        );
+      case "help":
+        return <HelpPanel />;
+      case "packs":
         return (
           <PacksPanel
             activePackId={activePackId}
             onSelectPack={onSelectPack}
             packs={packs}
           />
-        )
-      case 'saved':
+        );
+      case "saved":
         return (
           <SavedPanel
             savedIconIds={savedIconIds}
@@ -103,11 +106,11 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             onToggleCollectionIcon={onToggleCollectionIcon}
             onDownloadZip={onDownloadZip}
           />
-        )
+        );
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   const sidebarHeader = (
     <div className="h-14 px-4 border-b border-[#E7E7EA] flex items-center justify-between bg-white shrink-0 sticky top-0 z-20">
@@ -118,18 +121,19 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       </div>
 
       <div className="flex items-center gap-1 shrink-0">
-        {/* Detach / Open-in-new-panel icon button */}
-        <button
-          type="button"
-          onClick={() => {
-            window.open(window.location.href, '_blank')
-          }}
-          aria-label="Open panel in new window"
-          title="Open in new window"
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[#8E8E93] hover:text-[#0F1116] hover:bg-[#F7F7F8] transition-all hover:-translate-y-[1px] active:translate-y-0"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-        </button>
+        {!isOverlay && onToggleFloating && (
+          <button
+            type="button"
+            onClick={onToggleFloating}
+            aria-label={isFloating ? "Dock sidebar" : "Float sidebar"}
+            title={isFloating ? "Dock sidebar" : "Float sidebar"}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[#8E8E93] hover:text-[#0F1116] hover:bg-[#F7F7F8] transition-all hover:-translate-y-[1px] active:translate-y-0"
+          >
+            <ExternalLink
+              className={cn("w-3.5 h-3.5", isFloating && "rotate-180")}
+            />
+          </button>
+        )}
 
         {/* Close Button on overlay mode */}
         {isOverlay && (
@@ -144,18 +148,26 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
         )}
       </div>
     </div>
-  )
+  );
 
   const sectionTabs = (
     <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#E7E7EA] bg-[#F7F7F8] shrink-0">
       {[
-        { id: 'filters' as RightSidebarPanel, label: 'Filters', icon: SlidersHorizontal },
-        { id: 'inspector' as RightSidebarPanel, label: 'Inspector', icon: Sparkles },
-        { id: 'packs' as RightSidebarPanel, label: 'Packs', icon: Boxes },
-        { id: 'saved' as RightSidebarPanel, label: 'Saved', icon: Bookmark, badge: savedIconIds.length },
+        {
+          id: "filters" as RightSidebarPanel,
+          label: "Filters",
+          icon: SlidersHorizontal,
+        },
+        { id: "packs" as RightSidebarPanel, label: "Packs", icon: Boxes },
+        {
+          id: "saved" as RightSidebarPanel,
+          label: "Saved",
+          icon: Bookmark,
+          badge: savedIconIds.length,
+        },
       ].map((tab) => {
-        const isActive = activePanel === tab.id
-        const Icon = tab.icon
+        const isActive = activePanel === tab.id;
+        const Icon = tab.icon;
 
         return (
           <button
@@ -163,13 +175,18 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             type="button"
             onClick={() => onSelectPanel(tab.id)}
             className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all hover:-translate-y-[1px] active:translate-y-0',
+              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all hover:-translate-y-px active:translate-y-0",
               isActive
-                ? 'bg-white text-[#0F1116] shadow-xs'
-                : 'text-[#8E8E93] hover:text-[#0F1116]'
+                ? "bg-white text-[#0F1116] shadow-xs"
+                : "text-[#8E8E93] hover:text-[#0F1116]",
             )}
           >
-            <Icon className={cn('w-3 h-3', isActive ? 'text-[#7141E8]' : 'text-[#8E8E93]')} />
+            <Icon
+              className={cn(
+                "w-3 h-3",
+                isActive ? "text-[#7141E8]" : "text-[#8E8E93]",
+              )}
+            />
             <span>{tab.label}</span>
             {tab.badge !== undefined && tab.badge > 0 && (
               <span className="text-[9px] font-bold bg-[#7141E8] text-white px-1 rounded-full min-w-3 text-center">
@@ -177,24 +194,24 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
               </span>
             )}
           </button>
-        )
+        );
       })}
     </div>
-  )
+  );
 
   // Horizontal slide + fade animation variant
   const slideVariants = {
     initial: { opacity: 0, x: shouldReduceMotion ? 0 : 12 },
     animate: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: shouldReduceMotion ? 0 : -12 },
-  }
+  };
 
   // Overlay Mode (Tablet / Mobile)
   if (isOverlay) {
     return (
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-50 flex justify-end">
+        <div className="mobile-sidebar-overlay fixed inset-0 z-50 flex justify-end">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -206,11 +223,17 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             />
 
             <motion.aside
-              initial={{ x: '100%' }}
+              initial={{ x: "100%" }}
               animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ duration: shouldReduceMotion ? 0 : 0.22, ease: 'easeOut' }}
-              className="relative z-10 w-full max-w-[360px] h-full bg-white border-l border-[#E7E7EA] shadow-2xl flex flex-col"
+              exit={{ x: "100%" }}
+              transition={{
+                duration: shouldReduceMotion ? 0 : 0.22,
+                ease: "easeOut",
+              }}
+              className={cn(
+                "relative z-10 w-full max-w-[360px] h-full bg-white border-l border-[#E7E7EA] shadow-2xl flex flex-col",
+                isMobile && "mobile-sidebar-drawer",
+              )}
               aria-label="Contextual Right Panel"
             >
               {sidebarHeader}
@@ -224,7 +247,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
                   >
                     {renderPanelContent()}
                   </motion.div>
@@ -234,15 +257,19 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
           </div>
         )}
       </AnimatePresence>
-    )
+    );
   }
 
   // Desktop Static Column
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <aside
-      className="right-sidebar w-[360px] border-l border-[#E7E7EA] bg-white flex flex-col h-full overflow-hidden"
+      className={cn(
+        "right-sidebar w-[360px] border-l border-[#E7E7EA] bg-white flex flex-col h-full overflow-hidden",
+        isFloating &&
+          "fixed right-4 top-[84px] bottom-4 z-40 h-auto rounded-[18px] border shadow-[0_18px_48px_rgba(15,17,22,0.16)]",
+      )}
       aria-label="Contextual Right Panel"
     >
       {sidebarHeader}
@@ -256,12 +283,12 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             initial="initial"
             animate="animate"
             exit="exit"
-            transition={{ duration: 0.15, ease: 'easeOut' }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
           >
             {renderPanelContent()}
           </motion.div>
         </AnimatePresence>
       </div>
     </aside>
-  )
-}
+  );
+};
