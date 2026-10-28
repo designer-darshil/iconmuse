@@ -35,6 +35,11 @@ Included icon packages:
 - Feather (`feather-icons`)
 - Remix Icon (`remixicon`)
 - Lineicons (`lineicons`)
+- Material Symbols (`@iconify-json/material-symbols`, Apache-2.0)
+- Fluent System Icons (`@iconify-json/fluent`, MIT)
+- Carbon Icons (`@iconify-json/carbon`, Apache-2.0)
+- Bootstrap Icons (`@iconify-json/bi`, MIT)
+- MingCute Icons (`@iconify-json/mingcute`, Apache-2.0)
 - Open Peeps (`@dicebear/open-peeps`, CC0 artwork by Pablo Stanley)
 
 The searchable library is sourced from these local package assets; pack definitions group matching catalog entries and calculate counts from the loaded data. Saved icons start empty and persist in browser storage.

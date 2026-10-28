@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowLeft } from "lucide-react";
 import { Badge } from "../ui/badge";
+import { BrandLogo } from "./BrandLogo";
 
 export const NotFoundPage: React.FC = () => (
   <main className="min-h-screen bg-background text-foreground flex flex-col">
@@ -11,33 +12,7 @@ export const NotFoundPage: React.FC = () => (
         className="flex items-center gap-2.5"
       >
         <span className="w-8 h-8 rounded-[10px] bg-[#F7F7F8] border border-[#E7E7EA] flex items-center justify-center">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M4.5 19L11 5"
-              stroke="#7141E8"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-            />
-            <path
-              d="M10 20L16.5 6"
-              stroke="#0F1116"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-            />
-            <path
-              d="M15.5 20.5L20.5 10"
-              stroke="#0F1116"
-              strokeWidth="2.8"
-              strokeLinecap="round"
-              opacity="0.35"
-            />
-          </svg>
+          <BrandLogo className="w-6 h-6 object-contain" />
         </span>
         <span className="text-[18px] font-bold tracking-tight lowercase">
           iconmuse

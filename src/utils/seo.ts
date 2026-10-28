@@ -18,14 +18,19 @@ export function applyHomeSeo() {
   const configuredSiteUrl = import.meta.env.VITE_SITE_URL?.trim()
   const siteUrl = new URL(configuredSiteUrl || window.location.origin)
   const canonicalUrl = new URL('/', siteUrl).toString()
+  const logoUrl = new URL('/favicon.svg', siteUrl).toString()
 
   document.title = SITE_TITLE
   upsertMeta('name', 'description', SITE_DESCRIPTION)
   upsertMeta('property', 'og:url', canonicalUrl)
   upsertMeta('property', 'og:title', SITE_TITLE)
   upsertMeta('property', 'og:description', SITE_DESCRIPTION)
+  upsertMeta('property', 'og:image', logoUrl)
+  upsertMeta('property', 'og:image:alt', 'IconMuse logo')
   upsertMeta('name', 'twitter:title', SITE_TITLE)
   upsertMeta('name', 'twitter:description', SITE_DESCRIPTION)
+  upsertMeta('name', 'twitter:image', logoUrl)
+  upsertMeta('name', 'twitter:image:alt', 'IconMuse logo')
 
   const canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]') ?? document.createElement('link')
   canonical.rel = 'canonical'

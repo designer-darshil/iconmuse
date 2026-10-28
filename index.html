@@ -8,6 +8,15 @@
     <meta name="description" content="Search, compare, customize, and download open-source SVG icons and illustrations from Lucide, Phosphor, Tabler, Heroicons, Simple Icons, and more." />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="theme-color" content="#ffffff" />
+    <script>
+      try {
+        if (localStorage.getItem('iconmuse-theme') === 'dark') {
+          document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = 'dark';
+          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#111318');
+        }
+      } catch (_) {}
+    </script>
     <meta name="application-name" content="IconMuse" />
     <meta name="apple-mobile-web-app-title" content="IconMuse" />
     <link rel="manifest" href="/site.webmanifest" />
@@ -16,15 +25,21 @@
     <meta property="og:site_name" content="IconMuse" />
     <meta property="og:title" content="IconMuse — Search Free SVG Icons & Illustrations" />
     <meta property="og:description" content="A fast, searchable catalog of open-source SVG icons and illustrations. Compare sources, customize assets, and export the SVG you need." />
+    <meta property="og:image" content="/favicon.svg" />
+    <meta property="og:image:alt" content="IconMuse logo" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="IconMuse — Search Free SVG Icons & Illustrations" />
     <meta name="twitter:description" content="A fast, searchable catalog of open-source SVG icons and illustrations." />
+    <meta name="twitter:image" content="/favicon.svg" />
+    <meta name="twitter:image:alt" content="IconMuse logo" />
 
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "IconMuse",
+        "image": "/favicon.svg",
+        "logo": "/favicon.svg",
         "applicationCategory": "DesignApplication",
         "operatingSystem": "Web",
         "browserRequirements": "Requires JavaScript",
@@ -40,10 +55,9 @@
       }
     </script>
     
-    <!-- Google Fonts: Poppins (400, 500, 600, 700) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- General Sans (400, 500, 600, 700) -->
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+    <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
     <!-- Google tag queue: the external script and config load only after analytics consent. -->
     <script>
       window.dataLayer = window.dataLayer || [];

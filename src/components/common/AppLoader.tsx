@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
+import { BrandLogo } from "./BrandLogo";
 
 export const AppLoader: React.FC = () => (
   <div
@@ -10,13 +11,7 @@ export const AppLoader: React.FC = () => (
   >
     <header className="app-loader__header" aria-label="IconMuse">
       <div className="app-loader__brand">
-        <span className="app-loader__mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M4.5 19L11 5" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
-            <path d="M10 20L16.5 6" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
-            <path d="M15.5 20.5L20.5 10" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" opacity="0.35" />
-          </svg>
-        </span>
+        <span className="app-loader__mark"><BrandLogo className="w-7 h-7 object-contain" /></span>
         <span>iconmuse</span>
       </div>
     </header>
