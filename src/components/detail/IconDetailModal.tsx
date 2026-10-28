@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   X,
   Copy,
@@ -15,56 +15,174 @@ import {
   Shield,
   Search,
   Code2,
-} from 'lucide-react'
-import { ICON_CATALOG } from '../../data/iconCatalog'
-import { getIconSvg } from '../../data/iconCatalog'
-import { cn } from '../../utils/cn'
+} from "lucide-react";
+import { ICON_CATALOG } from "../../data/iconCatalog";
+import type { IconItem } from "../../types";
+import { cn } from "../../utils/cn";
+import { copyToClipboard } from "../../utils/copyToClipboard";
 
 export interface IconDetailModalProps {
-  iconId: string | null
-  onClose: () => void
-  onSelectIcon: (id: string) => void
-  savedIconIds: string[]
-  onToggleSave: (id: string) => void
-  onFindSimilar?: (category: string) => void
+  isDark?: boolean;
+  iconId: string | null;
+  onClose: () => void;
+  onSelectIcon: (id: string) => void;
+  savedIconIds: string[];
+  onToggleSave: (id: string) => void;
+  onFindSimilar?: (category: string) => void;
 }
 
 const COLOR_SWATCHES = [
-  '#0F1116',
-  '#7141E8',
-  '#2563EB',
-  '#059669',
-  '#E11D48',
-  '#D97706',
-  '#475569',
-  '#FFFFFF',
-]
+  "#0F1116",
+  "#7141E8",
+  "#2563EB",
+  "#059669",
+  "#E11D48",
+  "#D97706",
+  "#475569",
+  "#FFFFFF",
+  "#F4F4F5",
+];
 
 const BG_SWATCHES = [
-  'transparent',
-  '#FFFFFF',
-  '#F7F7F8',
-  '#F1F1F3',
-  '#0F1116',
-  '#EDE9FE',
-  '#DCFCE7',
-  '#FEF3C7',
-]
+  "transparent",
+  "#FFFFFF",
+  "#F7F7F8",
+  "#F1F1F3",
+  "#0F1116",
+  "#EDE9FE",
+  "#DCFCE7",
+  "#FEF3C7",
+];
 
-const ILLUSTRATION_PREVIEW_SIZE = 400
+const ILLUSTRATION_PREVIEW_SIZE = 400;
 
 function escapeXmlText(value: string) {
-  return value.replace(/[<>&"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[char]!)
+  return value.replace(
+    /[<>&"']/g,
+    (char) =>
+      ({
+        "<": "&lt;",
+        ">": "&gt;",
+        "&": "&amp;",
+        '"': "&quot;",
+        "'": "&apos;",
+      })[char]!,
+  );
 }
 
 function illustrationMarkup(svg: string, width: number, height: number) {
   return svg.replace(/<svg\b([^>]*)>/i, (_openingTag, attributes: string) => {
-    const cleanAttributes = attributes.replace(/\s(?:width|height)=["'][^"']*["']/gi, '')
-    return `<svg${cleanAttributes} width="${width}" height="${height}">`
-  })
+    const cleanAttributes = attributes.replace(
+      /\s(?:width|height)=["'][^"']*["']/gi,
+      "",
+    );
+    return `<svg${cleanAttributes} width="${width}" height="${height}">`;
+  });
+}
+
+function readViewBox(svg: string) {
+  const value = svg.match(/\bviewBox=["']([^"']+)["']/i)?.[1];
+  const parts = value?.trim().split(/[\s,]+/).map(Number);
+  if (parts?.length === 4 && parts.every(Number.isFinite) && parts[2] > 0 && parts[3] > 0) {
+    return { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
+  }
+  return { x: 0, y: 0, width: 24, height: 24 };
+}
+
+function setSvgDimensions(
+  svg: string,
+  width: number,
+  height: number,
+  viewBox?: { x: number; y: number; width: number; height: number },
+) {
+  return svg.replace(/<svg\b([^>]*)>/i, (_openingTag, attributes: string) => {
+    let clean = attributes
+      .replace(/\swidth=["'][^"']*["']/i, "")
+      .replace(/\sheight=["'][^"']*["']/i, "");
+    if (viewBox) {
+      const value = `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`;
+      clean = /\sviewBox=["'][^"']*["']/i.test(clean)
+        ? clean.replace(/\sviewBox=["'][^"']*["']/i, ` viewBox="${value}"`)
+        : `${clean} viewBox="${value}"`;
+    }
+    const withNamespace = /\sxmlns=/.test(clean)
+      ? clean
+      : `${clean} xmlns="http://www.w3.org/2000/svg"`;
+    return `<svg${withNamespace} width="${width}" height="${height}">`;
+  });
+}
+
+function addSvgMetadata(svg: string, icon: IconItem) {
+  const metadata = `<metadata>Icon: ${escapeXmlText(icon.name)}; Source: ${escapeXmlText(icon.source)}${icon.author ? `; Author: ${escapeXmlText(icon.author)}` : ""}; License: ${escapeXmlText(icon.license)}.</metadata>`;
+  return svg.replace(/<\/svg\s*>/i, `${metadata}</svg>`);
+}
+
+function applySvgPreviewSettings(
+  source: string,
+  iconId: string,
+  options: {
+    color: string;
+    strokeWidth: number | null;
+    opacity: number;
+    rotation: number;
+    flipH: boolean;
+    flipV: boolean;
+    background: string;
+    bgShape: "none" | "rounded-square" | "circle";
+    shadow: "none" | "subtle" | "float" | "glow";
+  },
+) {
+  const openingTagMatch = source.match(/<svg\b[^>]*>/i);
+  const openingTag = openingTagMatch?.[0];
+  const openingTagStart = openingTagMatch?.index ?? -1;
+  const closingTagStart = source.toLowerCase().lastIndexOf("</svg");
+  if (!openingTag || openingTagStart < 0 || closingTagStart < 0) {
+    throw new Error("The source SVG is invalid");
+  }
+
+  const bounds = readViewBox(source);
+  const cx = bounds.x + bounds.width / 2;
+  const cy = bounds.y + bounds.height / 2;
+  const sx = options.flipH ? -1 : 1;
+  const sy = options.flipV ? -1 : 1;
+  const transform = `translate(${cx} ${cy}) rotate(${options.rotation}) scale(${sx} ${sy}) translate(${-cx} ${-cy})`;
+
+  const safeId = iconId.replace(/[^a-zA-Z0-9_-]/g, "-");
+  const filterId = `iconmuse-export-shadow-${safeId}`;
+  let defs = "";
+  if (options.shadow !== "none") {
+    defs = `<defs><filter id="${filterId}" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="${options.shadow === "float" ? 4 : 2}" stdDeviation="${options.shadow === "float" ? 5 : 2}" flood-color="${options.shadow === "glow" ? options.color : "#0F1116"}" flood-opacity="${options.shadow === "float" ? 0.2 : 0.12}" /></filter></defs>`;
+  }
+
+  let background = "";
+  if (options.background !== "transparent") {
+    const rx = options.bgShape === "circle"
+      ? bounds.height / 2
+      : options.bgShape === "rounded-square"
+        ? Math.min(bounds.width, bounds.height) * 0.2
+        : 0;
+    background = `<rect x="${bounds.x}" y="${bounds.y}" width="${bounds.width}" height="${bounds.height}" fill="${options.background}"${rx ? ` rx="${rx}"` : ""} />`;
+  }
+
+  let attributes = openingTag.slice(4, -1).replace(/currentColor/g, options.color);
+  if (!/\sxmlns=/.test(attributes)) attributes += ' xmlns="http://www.w3.org/2000/svg"';
+  if (options.strokeWidth !== null) {
+    if (/\sstroke-width=["'][^"']*["']/i.test(attributes)) {
+      attributes = attributes.replace(/\sstroke-width=["'][^"']*["']/i, ` stroke-width="${options.strokeWidth}"`);
+    } else {
+      attributes += ` stroke-width="${options.strokeWidth}"`;
+    }
+  }
+
+  const bodyStart = openingTagStart + openingTag.length;
+  const body = source.slice(bodyStart, closingTagStart).replace(/currentColor/g, options.color);
+  const filterAttribute = options.shadow === "none" ? "" : ` filter="url(#${filterId})"`;
+  const wrapped = `${defs}<g opacity="${options.opacity / 100}" transform="${transform}"${filterAttribute}>${background}${body}</g>`;
+  return `${source.slice(0, openingTagStart)}<svg${attributes}>${wrapped}${source.slice(closingTagStart)}`;
 }
 
 export const IconDetailModal: React.FC<IconDetailModalProps> = ({
+  isDark = false,
   iconId,
   onClose,
   onSelectIcon,
@@ -72,327 +190,694 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
   onToggleSave,
   onFindSimilar,
 }) => {
-  const shouldReduceMotion = useReducedMotion()
+  const shouldReduceMotion = useReducedMotion();
 
   const icon = useMemo(() => {
-    if (!iconId) return null
-    return ICON_CATALOG.find((i) => i.id === iconId) || null
-  }, [iconId])
+    if (!iconId) return null;
+    return ICON_CATALOG.find((i) => i.id === iconId) || null;
+  }, [iconId]);
 
   // Customization State
-  const [size, setSize] = useState<number>(36)
-  const [isSizeCustomized, setIsSizeCustomized] = useState(false)
-  const [strokeWidth, setStrokeWidth] = useState<number>(2.0)
-  const [fgColor, setFgColor] = useState<string>('#0F1116')
-  const [bgColor, setBgColor] = useState<string>('transparent')
-  const [bgShape, setBgShape] = useState<'none' | 'rounded-square' | 'circle'>('none')
-  const [rotation, setRotation] = useState<number>(0)
-  const [flipH, setFlipH] = useState<boolean>(false)
-  const [flipV, setFlipV] = useState<boolean>(false)
-  const [opacity, setOpacity] = useState<number>(100)
-  const [shadow, setShadow] = useState<'none' | 'subtle' | 'float' | 'glow'>('none')
+  const [size, setSize] = useState<number>(36);
+  const [isSizeCustomized, setIsSizeCustomized] = useState(false);
+  const [strokeWidth, setStrokeWidth] = useState<number>(2.0);
+  const [fgColor, setFgColor] = useState<string>(isDark ? "#F4F4F5" : "#0F1116");
+  const previousDarkRef = useRef(isDark);
+
+  useEffect(() => {
+    if (previousDarkRef.current === isDark) return;
+    const previousDefault = previousDarkRef.current ? "#F4F4F5" : "#0F1116";
+    const nextDefault = isDark ? "#F4F4F5" : "#0F1116";
+    setFgColor((current) => current === previousDefault ? nextDefault : current);
+    previousDarkRef.current = isDark;
+  }, [isDark]);
+  const [bgColor, setBgColor] = useState<string>("transparent");
+  const [bgShape, setBgShape] = useState<"none" | "rounded-square" | "circle">(
+    "none",
+  );
+  const [rotation, setRotation] = useState<number>(0);
+  const [flipH, setFlipH] = useState<boolean>(false);
+  const [flipV, setFlipV] = useState<boolean>(false);
+  const [opacity, setOpacity] = useState<number>(100);
+  const [shadow, setShadow] = useState<"none" | "subtle" | "float" | "glow">(
+    "none",
+  );
 
   // Collapsible Sections
-  const [isTransformOpen, setIsTransformOpen] = useState(false)
-  const [isEffectsOpen, setIsEffectsOpen] = useState(false)
-  const [isBgShapeOpen, setIsBgShapeOpen] = useState(false)
+  const [isTransformOpen, setIsTransformOpen] = useState(false);
+  const [isEffectsOpen, setIsEffectsOpen] = useState(false);
+  const [isBgShapeOpen, setIsBgShapeOpen] = useState(false);
 
   // Export State
-  const [pngScale, setPngScale] = useState<string>('2x (48px)')
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
-  const [isSvgSplitOpen, setIsSvgSplitOpen] = useState(false)
+  const [pngScale, setPngScale] = useState<string>("2x (48px)");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isSvgSplitOpen, setIsSvgSplitOpen] = useState(false);
+  const [hasCopiedSvg, setHasCopiedSvg] = useState(false);
 
-  const modalRef = useRef<HTMLDivElement>(null)
-  const previousActiveElement = useRef<HTMLElement | null>(null)
+  const modalRef = useRef<HTMLDivElement>(null);
+  const exportActionsRef = useRef<HTMLDivElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
 
   // Reset customizer defaults when icon changes
   useEffect(() => {
     if (icon) {
-      setSize(icon.category === 'Illustrations' ? ILLUSTRATION_PREVIEW_SIZE : 36)
-      setIsSizeCustomized(false)
-      setStrokeWidth(2.0)
-      setFgColor('#0F1116')
-      setBgColor('transparent')
-      setBgShape('none')
-      setRotation(0)
-      setFlipH(false)
-      setFlipV(false)
-      setOpacity(100)
-      setShadow('none')
+      setSize(
+        icon.category === "Illustrations" ? ILLUSTRATION_PREVIEW_SIZE : 36,
+      );
+      setIsSizeCustomized(false);
+      setStrokeWidth(2.0);
+      setFgColor(isDark ? "#F4F4F5" : "#0F1116");
+      setBgColor("transparent");
+      setBgShape("none");
+      setRotation(0);
+      setFlipH(false);
+      setFlipV(false);
+      setOpacity(100);
+      setShadow("none");
     }
-  }, [icon?.id])
+  }, [icon?.id]);
 
   useEffect(() => {
-    if (!icon || icon.category !== 'Illustrations') return
+    if (!icon || icon.category !== "Illustrations") return;
     const updateDefaultSize = () => {
-      if (!isSizeCustomized) setSize(window.matchMedia('(max-width: 767px)').matches ? 320 : 400)
-    }
-    updateDefaultSize()
-    window.addEventListener('resize', updateDefaultSize)
-    return () => window.removeEventListener('resize', updateDefaultSize)
-  }, [icon?.id, icon?.source, isSizeCustomized])
+      if (!isSizeCustomized)
+        setSize(window.matchMedia("(max-width: 767px)").matches ? 320 : 400);
+    };
+    updateDefaultSize();
+    window.addEventListener("resize", updateDefaultSize);
+    return () => window.removeEventListener("resize", updateDefaultSize);
+  }, [icon?.id, icon?.source, isSizeCustomized]);
+
+  useEffect(() => {
+    if (!isSvgSplitOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!exportActionsRef.current?.contains(event.target as Node)) {
+        setIsSvgSplitOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [isSvgSplitOpen]);
 
   // Focus trapping & Escape key listener
   useEffect(() => {
-    if (!iconId) return
+    if (!iconId) return;
 
-    previousActiveElement.current = document.activeElement as HTMLElement
+    previousActiveElement.current = document.activeElement as HTMLElement;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-        return
+      if (e.key === "Escape") {
+        onClose();
+        return;
       }
 
-      if (e.key === 'Tab' && modalRef.current) {
+      if (e.key === "Tab" && modalRef.current) {
         const focusables = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )
-        if (focusables.length === 0) return
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusables.length === 0) return;
 
-        const first = focusables[0]
-        const last = focusables[focusables.length - 1]
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
 
         if (e.shiftKey) {
           if (document.activeElement === first) {
-            e.preventDefault()
-            last.focus()
+            e.preventDefault();
+            last.focus();
           }
         } else {
           if (document.activeElement === last) {
-            e.preventDefault()
-            first.focus()
+            e.preventDefault();
+            first.focus();
           }
         }
       }
-    }
+    };
 
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener("keydown", handleKeyDown);
 
     // Focus close button initially
-    const closeBtn = modalRef.current?.querySelector<HTMLButtonElement>('button[aria-label="Close icon detail"]')
-    closeBtn?.focus()
+    const closeBtn = modalRef.current?.querySelector<HTMLButtonElement>(
+      'button[aria-label="Close icon detail"]',
+    );
+    closeBtn?.focus();
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      previousActiveElement.current?.focus?.()
-    }
-  }, [iconId, onClose])
+      window.removeEventListener("keydown", handleKeyDown);
+      previousActiveElement.current?.focus?.();
+    };
+  }, [iconId, onClose]);
 
-  if (!icon) return null
+  if (!icon) return null;
 
-  const IconComponent = icon.component
-  const isIllustration = icon.category === 'Illustrations'
-  const illustrationHeight = size
-  const isSaved = savedIconIds.includes(icon.id)
+  const IconComponent = icon.component;
+  const isIllustration = icon.category === "Illustrations";
+  const illustrationHeight = size;
+  const isSaved = savedIconIds.includes(icon.id);
 
   const similarIcons = ICON_CATALOG.filter(
-    (i) => i.category === icon.category && i.id !== icon.id
-  ).slice(0, 5)
+    (i) => i.category === icon.category && i.id !== icon.id,
+  ).slice(0, 5);
 
   const matchingIcons = ICON_CATALOG.filter(
     (i) =>
       i.id !== icon.id &&
-      (i.tags.some((t) => icon.tags.includes(t)) || i.source === icon.source)
-  ).slice(0, 6)
+      (i.tags.some((t) => icon.tags.includes(t)) || i.source === icon.source),
+  ).slice(0, 6);
 
-  const similarIllustrations = ICON_CATALOG.filter((candidate) =>
-    candidate.category === 'Illustrations' && candidate.id !== icon.id &&
-    (candidate.category === icon.category || candidate.tags.some((tag) => icon.tags.includes(tag)))
-  ).slice(0, 4)
-  const similarIllustrationIds = new Set(similarIllustrations.map((candidate) => candidate.id))
-  const moreIllustrations = ICON_CATALOG.filter((candidate) =>
-    candidate.category === 'Illustrations' && candidate.id !== icon.id && !similarIllustrationIds.has(candidate.id)
-  ).slice(0, 6)
+  const similarIllustrations = ICON_CATALOG.filter(
+    (candidate) =>
+      candidate.category === "Illustrations" &&
+      candidate.id !== icon.id &&
+      (candidate.category === icon.category ||
+        candidate.tags.some((tag) => icon.tags.includes(tag))),
+  ).slice(0, 4);
+  const similarIllustrationIds = new Set(
+    similarIllustrations.map((candidate) => candidate.id),
+  );
+  const moreIllustrations = ICON_CATALOG.filter(
+    (candidate) =>
+      candidate.category === "Illustrations" &&
+      candidate.id !== icon.id &&
+      !similarIllustrationIds.has(candidate.id),
+  ).slice(0, 6);
 
-  const styleVariants = ICON_CATALOG
-    .filter((candidate) => candidate.source === icon.source && candidate.name === icon.name)
-    .sort((a, b) => a.style.localeCompare(b.style))
+  const styleVariants = ICON_CATALOG.filter(
+    (candidate) =>
+      candidate.source === icon.source && candidate.name === icon.name,
+  ).sort((a, b) => a.style.localeCompare(b.style));
 
   // Generate SVG Code
-  const generatedSvg = isIllustration
-    ? illustrationMarkup(icon.svg, size, illustrationHeight).replace(
-      '</svg>',
-      `<metadata>Illustration: ${escapeXmlText(icon.name)}; Source: ${escapeXmlText(icon.source)}${icon.author ? `; Author: ${escapeXmlText(icon.author)}` : ''}; License: ${escapeXmlText(icon.license)}.</metadata></svg>`,
-    )
-    : getIconSvg(icon, fgColor, size)
+  const getExportDimensions = (width: number) => {
+    const original = readViewBox(icon.svg);
+    const radians = (rotation * Math.PI) / 180;
+    const sin = Math.abs(Math.sin(radians));
+    const cos = Math.abs(Math.cos(radians));
+    const viewBoxWidth = original.width * cos + original.height * sin;
+    const viewBoxHeight = original.width * sin + original.height * cos;
+    const centerX = original.x + original.width / 2;
+    const centerY = original.y + original.height / 2;
+    const viewBox = {
+      x: centerX - viewBoxWidth / 2,
+      y: centerY - viewBoxHeight / 2,
+      width: viewBoxWidth,
+      height: viewBoxHeight,
+    };
+    return {
+      width,
+      height: Math.max(1, Math.round(width * (viewBox.height / viewBox.width))),
+      viewBox,
+    };
+  };
+
+  const buildExportSvg = (width: number) => {
+    const dimensions = getExportDimensions(width);
+    const source = applySvgPreviewSettings(icon.svg, icon.id, {
+      color: fgColor,
+      strokeWidth: isIllustration ? null : strokeWidth,
+      opacity,
+      rotation,
+      flipH,
+      flipV,
+      background: bgColor,
+      bgShape: isIllustration ? "none" : bgShape,
+      shadow,
+    });
+    return addSvgMetadata(
+      setSvgDimensions(source, dimensions.width, dimensions.height, dimensions.viewBox),
+      icon,
+    );
+  };
+
+  // Icons render at 2× the optical-size setting in the modal; illustrations
+  // render at their selected canvas size. Keep that artwork size for SVG export.
+  const generatedSvg = buildExportSvg(isIllustration ? size : size * 2);
 
   const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 2000)
-  }
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 2000);
+  };
 
-  const handleCopySvg = () => {
-    navigator.clipboard?.writeText(generatedSvg)
-    showToast('SVG Copied to clipboard!')
-  }
+  const handleCopySvg = async () => {
+    try {
+      await copyToClipboard(generatedSvg);
+      setIsSvgSplitOpen(false);
+      setHasCopiedSvg(true);
+      window.setTimeout(() => setHasCopiedSvg(false), 1800);
+      showToast("SVG copied to clipboard");
+    } catch {
+      showToast("Could not copy SVG. Check clipboard permissions and try again.");
+    }
+  };
 
-  const handleCopyJsx = () => {
-    const jsxCode = `<${icon.name.replace(/\s+/g, '')} size={${size}} color="${fgColor}" strokeWidth={${strokeWidth}} />`
-    navigator.clipboard?.writeText(jsxCode)
-    showToast('React JSX Component copied!')
-    setIsSvgSplitOpen(false)
-  }
+  const handleCopyJsx = async () => {
+    const jsxCode = `<${icon.name.replace(/\s+/g, "")} size={${size}} color="${fgColor}" strokeWidth={${strokeWidth}} />`;
+    try {
+      await copyToClipboard(jsxCode);
+      showToast("React JSX Component copied!");
+      setIsSvgSplitOpen(false);
+    } catch {
+      showToast("Could not copy JSX. Check clipboard permissions and try again.");
+    }
+  };
 
   const handleDownloadSvg = () => {
-    const blob = new Blob([generatedSvg], { type: 'image/svg+xml' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${icon.name.toLowerCase().replace(/\s+/g, '-')}.svg`
-    link.style.display = 'none'
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-    showToast(`Downloaded ${icon.name}.svg`)
-  }
+    const blob = new Blob([generatedSvg], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${icon.name.toLowerCase().replace(/\s+/g, "-")}.svg`;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast(`Downloaded ${icon.name}.svg`);
+  };
 
-  const handleCopyPng = () => {
-    showToast(`Rendered ${pngScale} PNG copied!`)
-  }
+  const handleDownloadPng = () => {
+    const selectedPixels = pngScale.match(/\((\d+)px\)/)?.[1] ?? pngScale.match(/^(\d+)px/)?.[1];
+    const targetWidth = Math.max(1, Number(selectedPixels) || 48);
+    const { width, height } = getExportDimensions(targetWidth);
+    const pngSvg = buildExportSvg(width);
+    const svgBlob = new Blob([pngSvg], { type: "image/svg+xml;charset=utf-8" });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    const image = new Image();
+
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        URL.revokeObjectURL(svgUrl);
+        showToast("Could not create PNG");
+        return;
+      }
+      context.drawImage(image, 0, 0, width, height);
+      URL.revokeObjectURL(svgUrl);
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          showToast("Could not create PNG");
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${icon.name.toLowerCase().replace(/\s+/g, "-")}-${width}x${height}.png`;
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast(`Downloaded ${width} × ${height}px PNG`);
+      }, "image/png");
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(svgUrl);
+      showToast("Could not create PNG");
+    };
+    image.src = svgUrl;
+  };
 
   const getShadowStyle = () => {
     switch (shadow) {
-      case 'subtle':
-        return '0 2px 8px rgba(15,17,22,0.08)'
-      case 'float':
-        return '0 8px 24px rgba(15,17,22,0.16)'
-      case 'glow':
-        return `0 0 20px ${fgColor}55`
+      case "subtle":
+        return "0 2px 8px rgba(15,17,22,0.08)";
+      case "float":
+        return "0 8px 24px rgba(15,17,22,0.16)";
+      case "glow":
+        return `0 0 20px ${fgColor}55`;
       default:
-        return 'none'
+        return "none";
     }
-  }
+  };
 
   if (isIllustration) {
     return (
       <AnimatePresence>
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#11121A]/55 p-0 backdrop-blur-sm md:p-5" role="dialog" aria-modal="true" aria-labelledby="illustration-title">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#11121A]/55 p-0 backdrop-blur-sm md:p-5"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="illustration-title"
+        >
           <motion.div
             ref={modalRef}
-            initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.985, y: shouldReduceMotion ? 0 : 8 }}
+            initial={{
+              opacity: 0,
+              scale: shouldReduceMotion ? 1 : 0.985,
+              y: shouldReduceMotion ? 0 : 8,
+            }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.985, y: shouldReduceMotion ? 0 : 6 }}
-            transition={{ duration: shouldReduceMotion ? 0 : 0.18, ease: 'easeOut' }}
-            className="relative flex h-[100dvh] w-full max-w-[1600px] flex-col overflow-hidden bg-white shadow-2xl md:h-[94dvh] md:rounded-2xl md:border md:border-[#E7E7EA]"
+            exit={{
+              opacity: 0,
+              scale: shouldReduceMotion ? 1 : 0.985,
+              y: shouldReduceMotion ? 0 : 6,
+            }}
+            transition={{
+              duration: shouldReduceMotion ? 0 : 0.18,
+              ease: "easeOut",
+            }}
+            className="relative flex h-[100dvh] w-full max-w-[1680px] flex-col overflow-hidden bg-white font-sans shadow-2xl md:h-[90vh] md:rounded-[16px] md:border md:border-[#E7E7EA]"
           >
-            <header className="z-10 flex min-h-16 shrink-0 items-center justify-between gap-4 border-b border-[#E7E7EA] bg-white px-4 sm:px-6">
-              <div className="min-w-0">
-                <p className="m-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7A7488]">Illustration library</p>
-                <h1 id="illustration-title" className="m-0 truncate text-lg font-semibold tracking-tight text-[#17151C]">{icon.name}</h1>
-              </div>
+            <header className="z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-[#E7E7EA] bg-white px-5">
+              <nav className="flex min-w-0 items-center gap-1.5 overflow-x-auto text-xs font-medium text-[#8E8E93] no-scrollbar" aria-label="Breadcrumb">
+                <span>Illustrations</span>
+                <span aria-hidden="true">/</span>
+                <span className="shrink-0">{icon.source}</span>
+                <span aria-hidden="true">/</span>
+                <h1 id="illustration-title" className="m-0 truncate font-bold text-[#0F1116]">
+                  {icon.name}
+                </h1>
+              </nav>
               <div className="flex shrink-0 items-center gap-2">
-                <button type="button" onClick={() => onToggleSave(icon.id)} className="rounded-lg border border-[#E7E7EA] px-3 py-2 text-xs font-medium text-[#393641] hover:bg-[#F8F7FA]">
-                  {isSaved ? 'Saved' : 'Save'}
+                <button
+                  type="button"
+                  onClick={() => onToggleSave(icon.id)}
+                  className="rounded-full border border-[#E7E7EA] px-4 py-2 text-xs font-semibold text-[#0F1116] transition-colors hover:bg-[#F7F7F8]"
+                >
+                  {isSaved ? "Saved" : "Save"}
                 </button>
-                <button type="button" onClick={onClose} aria-label="Close icon detail" className="flex h-9 w-9 items-center justify-center rounded-lg text-[#6F6B76] hover:bg-[#F3F2F5] hover:text-[#17151C]">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close icon detail"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-[#8E8E93] transition-colors hover:bg-[#F7F7F8] hover:text-[#0F1116]"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             </header>
 
-            <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_340px] lg:overflow-hidden">
-              <section className="flex min-h-[58dvh] min-w-0 flex-col bg-[#F4F3F6] p-3 sm:p-5 lg:min-h-0" aria-label="Illustration preview">
-                  <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-xl border border-[#E1DFE5] bg-[radial-gradient(#dedbe3_1px,transparent_1px)] [background-size:18px_18px]">
+            <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_360px] lg:overflow-hidden">
+              <section
+                className="illustration-preview-section flex min-h-[58dvh] min-w-0 flex-col bg-[#F4F3F6] p-4 sm:p-5 lg:min-h-0"
+                aria-label="Illustration preview"
+              >
+                <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-xl border border-[#E1DFE5] bg-[radial-gradient(#dedbe3_1px,transparent_1px)] [background-size:18px_18px]">
                   <div
                     className="m-auto flex h-max w-max shrink-0 items-center justify-center p-4 sm:p-6"
                     style={{
-                      backgroundColor: bgColor === 'transparent' ? 'transparent' : bgColor,
+                      backgroundColor:
+                        bgColor === "transparent" ? "transparent" : bgColor,
                       boxShadow: getShadowStyle(),
                       opacity: opacity / 100,
                       transform: `rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
                     }}
                     dangerouslySetInnerHTML={{
-                      __html: illustrationMarkup(icon.svg, size, illustrationHeight),
+                      __html: illustrationMarkup(
+                        icon.svg,
+                        size,
+                        illustrationHeight,
+                      ),
                     }}
                   />
                 </div>
-                <div className="flex shrink-0 items-center justify-between gap-3 px-1 pt-3 text-xs text-[#716D78]">
+                <div className="flex shrink-0 items-center justify-between gap-3 px-1 pt-3 text-[11px] text-[#77727F]">
                   <span>Original artwork dimensions</span>
-                  <span className="font-mono tabular-nums text-[#37333E]">{size} × {illustrationHeight} px</span>
+                  <span className="font-mono tabular-nums text-[#37333E]">
+                    {size} × {illustrationHeight} px
+                  </span>
                 </div>
               </section>
 
-              <aside className="flex flex-col gap-6 border-t border-[#E7E7EA] bg-white p-5 sm:p-6 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
+              <aside className="flex flex-col gap-5 border-t border-[#E7E7EA] bg-white p-5 font-sans lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
                 <section className="space-y-3">
                   <div>
-                    <h2 className="m-0 text-sm font-semibold text-[#17151C]">Artwork details</h2>
-                    <p className="mb-0 mt-1 text-xs leading-relaxed text-[#77727F]">The preview opens at the illustration’s original viewBox size. Scroll the canvas to inspect every detail.</p>
+                    <h2 className="m-0 text-sm font-semibold text-[#0F1116]">
+                      Artwork details
+                    </h2>
+                    <p className="mb-0 mt-1.5 text-[13px] leading-relaxed text-[#777780]">
+                      The preview opens at the illustration’s original viewBox
+                      size. Scroll the canvas to inspect every detail.
+                    </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {[icon.source, icon.license, icon.category].map((label) => <span key={label} className="rounded-full border border-[#E7E5EA] px-2.5 py-1 text-[11px] text-[#625D69]">{label}</span>)}
-                  </div>
-                </section>
-
-                <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <label htmlFor="illustration-size">Preview size</label>
-                    <span className="font-mono text-xs text-[#7141E8]">{size} × {size} px</span>
-                  </div>
-                  <input id="illustration-size" type="range" min="100" max="1200" step="10" value={size} onChange={(event) => { setIsSizeCustomized(true); setSize(Number(event.target.value)) }} className="w-full accent-[#7141E8]" />
-                  <button type="button" onClick={() => { setIsSizeCustomized(false); setSize(window.matchMedia('(max-width: 767px)').matches ? 320 : 400) }} className="text-xs font-medium text-[#7141E8] hover:underline">Reset to screen size</button>
-                </section>
-
-                <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
-                  <h2 className="m-0 text-sm font-semibold text-[#17151C]">Canvas</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {BG_SWATCHES.map((color) => (
-                      <button key={color} type="button" onClick={() => setBgColor(color)} aria-label={color === 'transparent' ? 'Transparent canvas' : `Canvas ${color}`} aria-pressed={bgColor === color} className={cn('h-8 w-8 rounded-full border border-black/10', bgColor === color && 'ring-2 ring-[#7141E8] ring-offset-2')} style={{ background: color === 'transparent' ? 'linear-gradient(135deg,#fff 45%,#e86b6b 46%,#e86b6b 54%,#fff 55%)' : color }} />
+                  <div className="flex flex-wrap gap-1.5">
+                    {[icon.source, icon.license, icon.category].map((label) => (
+                      <span
+                        key={label}
+                        className="rounded-full border border-[#E7E5EA] px-2.5 py-1 text-[11px] font-medium text-[#625D69]"
+                      >
+                        {label}
+                      </span>
                     ))}
                   </div>
                 </section>
 
                 <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
-                  <h2 className="m-0 text-sm font-semibold text-[#17151C]">Adjustments</h2>
-                  <label className="flex items-center justify-between gap-3 text-xs text-[#48434F]">Opacity <input aria-label="Illustration opacity" type="range" min="10" max="100" step="5" value={opacity} onChange={(event) => setOpacity(Number(event.target.value))} className="w-32 accent-[#7141E8]" /><span className="w-9 text-right tabular-nums">{opacity}%</span></label>
-                  <button type="button" onClick={() => setRotation((current) => (current + 90) % 360)} className="rounded-lg border border-[#E7E7EA] px-3 py-2 text-xs text-[#48434F] hover:bg-[#F8F7FA]">Rotate {rotation ? `· ${rotation}°` : ''}</button>
-                  <div className="flex gap-2">
-                    <button type="button" aria-pressed={flipH} onClick={() => setFlipH((value) => !value)} className={cn('flex-1 rounded-lg border px-3 py-2 text-xs', flipH ? 'border-[#7141E8] bg-[#F7F4FF] text-[#5630BD]' : 'border-[#E7E7EA] text-[#48434F]')}>Flip horizontal</button>
-                    <button type="button" aria-pressed={flipV} onClick={() => setFlipV((value) => !value)} className={cn('flex-1 rounded-lg border px-3 py-2 text-xs', flipV ? 'border-[#7141E8] bg-[#F7F4FF] text-[#5630BD]' : 'border-[#E7E7EA] text-[#48434F]')}>Flip vertical</button>
+                  <div className="flex items-center justify-between gap-3 text-[13px] font-medium text-[#303038]">
+                    <label htmlFor="illustration-size">Preview size</label>
+                    <span className="font-mono text-[13px] text-[#7141E8]">
+                      {size} × {size} px
+                    </span>
                   </div>
-                  <div className="flex flex-wrap gap-2" aria-label="Shadow effect">
-                    {(['none', 'subtle', 'float'] as const).map((option) => <button key={option} type="button" aria-pressed={shadow === option} onClick={() => setShadow(option)} className={cn('rounded-lg border px-3 py-1.5 text-xs capitalize', shadow === option ? 'border-[#7141E8] bg-[#F7F4FF] text-[#5630BD]' : 'border-[#E7E7EA] text-[#625D69]')}>{option} shadow</button>)}
+                  <input
+                    id="illustration-size"
+                    type="range"
+                    min="100"
+                    max="1200"
+                    step="10"
+                    value={size}
+                    onChange={(event) => {
+                      setIsSizeCustomized(true);
+                      setSize(Number(event.target.value));
+                    }}
+                    className="w-full accent-[#7141E8]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSizeCustomized(false);
+                      setSize(
+                        window.matchMedia("(max-width: 767px)").matches
+                          ? 320
+                          : 400,
+                      );
+                    }}
+                    className="text-[13px] font-medium text-[#7141E8] hover:underline"
+                  >
+                    Reset to screen size
+                  </button>
+                </section>
+
+                <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
+                  <h2 className="m-0 text-sm font-semibold text-[#0F1116]">
+                    Canvas
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {BG_SWATCHES.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setBgColor(color)}
+                        aria-label={
+                          color === "transparent"
+                            ? "Transparent canvas"
+                            : `Canvas ${color}`
+                        }
+                        aria-pressed={bgColor === color}
+                        className={cn(
+                          "h-8 w-8 rounded-full border border-black/10",
+                          bgColor === color &&
+                            "ring-2 ring-[#7141E8] ring-offset-2",
+                        )}
+                        style={{
+                          background:
+                            color === "transparent"
+                              ? "linear-gradient(135deg,#fff 45%,#e86b6b 46%,#e86b6b 54%,#fff 55%)"
+                              : color,
+                        }}
+                      />
+                    ))}
                   </div>
                 </section>
 
                 <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
-                  <h2 className="m-0 text-sm font-semibold text-[#17151C]">Export</h2>
-                  <button type="button" onClick={handleDownloadSvg} className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#7141E8] px-4 text-sm font-semibold text-white hover:bg-[#6031D4]"><Download className="h-4 w-4" />Download SVG</button>
-                  <button type="button" onClick={handleCopySvg} className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#E7E7EA] px-4 text-sm font-medium text-[#393641] hover:bg-[#F8F7FA]"><Copy className="h-4 w-4" />Copy SVG</button>
+                  <h2 className="m-0 text-sm font-semibold text-[#0F1116]">
+                    Adjustments
+                  </h2>
+                  <label className="flex items-center justify-between gap-3 text-[13px] text-[#303038]">
+                    Opacity{" "}
+                    <input
+                      aria-label="Illustration opacity"
+                      type="range"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value={opacity}
+                      onChange={(event) =>
+                        setOpacity(Number(event.target.value))
+                      }
+                      className="w-32 accent-[#7141E8]"
+                    />
+                    <span className="w-9 text-right tabular-nums">
+                      {opacity}%
+                    </span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRotation((current) => (current + 90) % 360)
+                      }
+                      className="rounded-lg border border-[#E7E7EA] px-3 py-2 text-[13px] text-[#303038] hover:bg-[#F8F7FA]"
+                    >
+                      Rotate {rotation ? `· ${rotation}°` : ""}
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={flipH}
+                      onClick={() => setFlipH((value) => !value)}
+                      className={cn(
+                        "flex-1 rounded-lg border px-3 py-2 text-[13px]",
+                        flipH
+                          ? "border-[#7141E8] bg-[#F7F4FF] text-[#5630BD]"
+                          : "border-[#E7E7EA] text-[#48434F]",
+                      )}
+                    >
+                      Flip horizontal
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    aria-pressed={flipV}
+                    onClick={() => setFlipV((value) => !value)}
+                    className={cn(
+                      "w-full rounded-lg border px-3 py-2 text-[13px]",
+                      flipV
+                        ? "border-[#7141E8] bg-[#F7F4FF] text-[#5630BD]"
+                        : "border-[#E7E7EA] text-[#48434F]",
+                    )}
+                  >
+                    Flip vertical
+                  </button>
+                  <div
+                    className="flex flex-wrap gap-2"
+                    aria-label="Shadow effect"
+                  >
+                    {(["none", "subtle", "float"] as const).map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        aria-pressed={shadow === option}
+                        onClick={() => setShadow(option)}
+                        className={cn(
+                        "rounded-lg border px-3 py-1.5 text-[13px] capitalize",
+                          shadow === option
+                            ? "border-[#7141E8] bg-[#F7F4FF] text-[#5630BD]"
+                            : "border-[#E7E7EA] text-[#625D69]",
+                        )}
+                      >
+                        {option} shadow
+                      </button>
+                    ))}
+                  </div>
                 </section>
 
-                <button type="button" onClick={() => { onFindSimilar?.(icon.category); onClose() }} className="self-start text-xs font-medium text-[#7141E8] hover:underline">Find similar illustrations</button>
+                <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
+                  <h2 className="m-0 text-sm font-semibold text-[#0F1116]">
+                    Export
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={handleDownloadSvg}
+                    className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#7141E8] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#6031D4]"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download SVG
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCopySvg}
+                    className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#E7E7EA] px-4 text-[13px] font-medium text-[#303038] transition-colors hover:bg-[#F8F7FA]"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy SVG
+                  </button>
+                </section>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onFindSimilar?.(icon.category);
+                    onClose();
+                  }}
+                  className="self-start text-[13px] font-medium text-[#7141E8] hover:underline"
+                >
+                  Find similar illustrations
+                </button>
 
                 {similarIllustrations.length > 0 && (
                   <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
-                    <h2 className="m-0 text-sm font-semibold text-[#17151C]">Similar illustrations</h2>
-                    <div className="grid grid-cols-2 gap-2">
-                      {similarIllustrations.map((item) => <button key={item.id} type="button" onClick={() => onSelectIcon(item.id)} className="min-w-0 rounded-lg border border-[#E7E7EA] p-2 text-left hover:border-[#C8B8F3] hover:bg-[#FBFAFD]">
-                        <div className="flex h-20 items-center justify-center overflow-hidden rounded-md bg-[#F4F3F6] p-1" dangerouslySetInnerHTML={{ __html: illustrationMarkup(item.svg, 64, 64) }} />
-                        <span className="mt-2 block truncate text-xs font-medium text-[#393641]">{item.name}</span>
-                      </button>)}
+                    <h2 className="m-0 text-sm font-semibold text-[#0F1116]">
+                      Similar illustrations
+                    </h2>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {similarIllustrations.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => onSelectIcon(item.id)}
+                          className="min-w-0 rounded-lg border border-[#E7E7EA] p-2.5 text-left hover:border-[#C8B8F3] hover:bg-[#FBFAFD]"
+                        >
+                          <div
+                            className="flex h-20 items-center justify-center overflow-hidden rounded-md bg-[#F4F3F6] p-1"
+                            dangerouslySetInnerHTML={{
+                              __html: illustrationMarkup(item.svg, 64, 64),
+                            }}
+                          />
+                          <span className="mt-2 block truncate text-xs font-medium text-[#393641]">
+                            {item.name}
+                          </span>
+                        </button>
+                      ))}
                     </div>
                   </section>
                 )}
                 {moreIllustrations.length > 0 && (
                   <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
-                    <h2 className="m-0 text-sm font-semibold text-[#17151C]">More illustrations</h2>
-                    <div className="grid grid-cols-2 gap-2">
-                      {moreIllustrations.map((item) => <button key={item.id} type="button" onClick={() => onSelectIcon(item.id)} className="min-w-0 rounded-lg border border-[#E7E7EA] p-2 text-left hover:border-[#C8B8F3] hover:bg-[#FBFAFD]">
-                        <div className="flex h-20 items-center justify-center overflow-hidden rounded-md bg-[#F4F3F6] p-1" dangerouslySetInnerHTML={{ __html: illustrationMarkup(item.svg, 64, 64) }} />
-                        <span className="mt-2 block truncate text-xs font-medium text-[#393641]">{item.name}</span>
-                      </button>)}
+                    <h2 className="m-0 text-sm font-semibold text-[#0F1116]">
+                      More illustrations
+                    </h2>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {moreIllustrations.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => onSelectIcon(item.id)}
+                          className="min-w-0 rounded-lg border border-[#E7E7EA] p-2.5 text-left hover:border-[#C8B8F3] hover:bg-[#FBFAFD]"
+                        >
+                          <div
+                            className="flex h-20 items-center justify-center overflow-hidden rounded-md bg-[#F4F3F6] p-1"
+                            dangerouslySetInnerHTML={{
+                              __html: illustrationMarkup(item.svg, 64, 64),
+                            }}
+                          />
+                          <span className="mt-2 block truncate text-xs font-medium text-[#393641]">
+                            {item.name}
+                          </span>
+                        </button>
+                      ))}
                     </div>
                   </section>
                 )}
               </aside>
             </div>
           </motion.div>
-          {toastMessage && <div role="status" className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-[#17151C] px-4 py-2.5 text-xs font-semibold text-white shadow-xl">{toastMessage}</div>}
+          {toastMessage && (
+            <div
+              role="status"
+              className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-[#17151C] px-4 py-2.5 text-xs font-semibold text-white shadow-xl"
+            >
+              {toastMessage}
+            </div>
+          )}
         </div>
       </AnimatePresence>
-    )
+    );
   }
 
   return (
@@ -416,31 +901,51 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
         {/* Modal Window: max-w-[1680px], 16px radius, professional quick transition */}
         <motion.div
           ref={modalRef}
-          initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.98, y: shouldReduceMotion ? 0 : 8 }}
+          initial={{
+            opacity: 0,
+            scale: shouldReduceMotion ? 1 : 0.98,
+            y: shouldReduceMotion ? 0 : 8,
+          }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.98, y: shouldReduceMotion ? 0 : 6 }}
-          transition={{ duration: shouldReduceMotion ? 0 : 0.18, ease: 'easeOut' }}
+          exit={{
+            opacity: 0,
+            scale: shouldReduceMotion ? 1 : 0.98,
+            y: shouldReduceMotion ? 0 : 6,
+          }}
+          transition={{
+            duration: shouldReduceMotion ? 0 : 0.18,
+            ease: "easeOut",
+          }}
           className="relative z-10 w-full max-w-[1680px] h-[100dvh] md:h-[90vh] bg-white md:rounded-[16px] shadow-2xl border border-[#E7E7EA] overflow-hidden flex flex-col"
         >
           {/* Top Bar for Mobile & Desktop Close */}
           <div className="h-14 px-5 border-b border-[#E7E7EA] flex items-center justify-between bg-white shrink-0 sticky top-0 z-30">
             {/* Breadcrumb: Icons / Category / Icon Name */}
-            <nav className="flex items-center gap-1.5 text-xs text-[#8E8E93] overflow-x-auto no-scrollbar font-medium" aria-label="Breadcrumb">
-              <span className="hover:text-[#0F1116] cursor-pointer" onClick={onClose}>
+            <nav
+              className="flex items-center gap-1.5 text-xs text-[#8E8E93] overflow-x-auto no-scrollbar font-medium"
+              aria-label="Breadcrumb"
+            >
+              <span
+                className="hover:text-[#0F1116] cursor-pointer"
+                onClick={onClose}
+              >
                 Icons
               </span>
               <span>/</span>
               <span
                 className="hover:text-[#0F1116] cursor-pointer"
                 onClick={() => {
-                  onFindSimilar?.(icon.category)
-                  onClose()
+                  onFindSimilar?.(icon.category);
+                  onClose();
                 }}
               >
                 {icon.category}
               </span>
               <span>/</span>
-              <span id="icon-detail-title" className="font-bold text-[#0F1116] truncate max-w-[180px]">
+              <span
+                id="icon-detail-title"
+                className="font-bold text-[#0F1116] truncate max-w-[180px]"
+              >
                 {icon.name}
               </span>
             </nav>
@@ -461,21 +966,23 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
             <div className="order-2 lg:order-none border-b lg:border-b-0 lg:border-r border-[#E7E7EA] bg-white overflow-visible lg:overflow-y-auto p-4 sm:p-5 flex flex-col gap-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F1116] m-0">
-                  {isIllustration ? 'Customize Illustration' : 'Customize Glyph'}
+                  {isIllustration
+                    ? "Customize Illustration"
+                    : "Customize Glyph"}
                 </h3>
                 <button
                   type="button"
                   onClick={() => {
-                    setSize(isIllustration ? ILLUSTRATION_PREVIEW_SIZE : 36)
-                    setStrokeWidth(2.0)
-                    setFgColor('#0F1116')
-                    setBgColor('transparent')
-                    setBgShape('none')
-                    setRotation(0)
-                    setFlipH(false)
-                    setFlipV(false)
-                    setOpacity(100)
-                    setShadow('none')
+                    setSize(isIllustration ? ILLUSTRATION_PREVIEW_SIZE : 36);
+                    setStrokeWidth(2.0);
+                    setFgColor(isDark ? "#F4F4F5" : "#0F1116");
+                    setBgColor("transparent");
+                    setBgShape("none");
+                    setRotation(0);
+                    setFlipH(false);
+                    setFlipV(false);
+                    setOpacity(100);
+                    setShadow("none");
                   }}
                   className="text-[11px] font-semibold text-[#7141E8] hover:underline"
                 >
@@ -484,7 +991,8 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
               </div>
               {isIllustration && (
                 <p className="-mt-3 mb-0 text-[11px] leading-relaxed text-[#777780]">
-                  Original artwork colors are preserved. Size, background, rotation, and effects still apply.
+                  Original artwork colors are preserved. Size, background,
+                  rotation, and effects still apply.
                 </p>
               )}
 
@@ -493,7 +1001,9 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                 <div className="flex items-center justify-between text-xs font-bold text-[#0F1116]">
                   <label htmlFor="custom-size-slider">Size</label>
                   <span className="font-mono text-[#7141E8]">
-                    {isIllustration ? `${size} × ${illustrationHeight}px` : `${size}px`}
+                    {isIllustration
+                      ? `${size} × ${illustrationHeight}px`
+                      : `${size}px`}
                   </span>
                 </div>
 
@@ -518,10 +1028,10 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                       type="button"
                       onClick={() => setSize(preset)}
                       className={cn(
-                        'py-1 text-center text-xs font-semibold rounded-full transition-all hover:-translate-y-[1px] active:translate-y-0',
+                        "py-1 text-center text-xs font-semibold rounded-full transition-all hover:-translate-y-[1px] active:translate-y-0",
                         size === preset
-                          ? 'bg-white text-[#0F1116] shadow-2xs'
-                          : 'text-[#8E8E93] hover:text-[#0F1116]'
+                          ? "bg-white text-[#0F1116] shadow-2xs"
+                          : "text-[#8E8E93] hover:text-[#0F1116]",
                       )}
                     >
                       {preset}
@@ -531,67 +1041,77 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
               </div>
 
               {/* Stroke Weight */}
-              {!isIllustration && <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between text-xs font-bold text-[#0F1116]">
-                  <label htmlFor="custom-stroke-slider">Stroke Width</label>
-                  <span className="font-mono text-[#7141E8]">{strokeWidth.toFixed(1)}px</span>
+              {!isIllustration && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#0F1116]">
+                    <label htmlFor="custom-stroke-slider">Stroke Width</label>
+                    <span className="font-mono text-[#7141E8]">
+                      {strokeWidth.toFixed(1)}px
+                    </span>
+                  </div>
+                  <input
+                    id="custom-stroke-slider"
+                    type="range"
+                    min="1"
+                    max="3"
+                    step="0.5"
+                    value={strokeWidth}
+                    onChange={(e) => setStrokeWidth(parseFloat(e.target.value))}
+                    className="w-full accent-[#7141E8] cursor-pointer"
+                  />
                 </div>
-                <input
-                  id="custom-stroke-slider"
-                  type="range"
-                  min="1"
-                  max="3"
-                  step="0.5"
-                  value={strokeWidth}
-                  onChange={(e) => setStrokeWidth(parseFloat(e.target.value))}
-                  className="w-full accent-[#7141E8] cursor-pointer"
-                />
-              </div>}
+              )}
 
               {/* Foreground Color Input & Swatches */}
-              {!isIllustration && <div className="flex flex-col gap-2.5">
-                <div className="flex items-center justify-between text-xs font-bold text-[#0F1116]">
-                  <label htmlFor="fg-color-input">Icon Color</label>
-                  <span className="font-mono text-xs text-[#8E8E93] uppercase">{fgColor}</span>
-                </div>
+              {!isIllustration && (
+                <div className="flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#0F1116]">
+                    <label htmlFor="fg-color-input">Icon Color</label>
+                    <span className="font-mono text-xs text-[#8E8E93] uppercase">
+                      {fgColor}
+                    </span>
+                  </div>
 
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-7 h-7 rounded-full border border-black/10 shrink-0 shadow-2xs"
-                    style={{ backgroundColor: fgColor }}
-                  />
-                  <input
-                    id="fg-color-input"
-                    type="text"
-                    value={fgColor}
-                    onChange={(e) => setFgColor(e.target.value)}
-                    className="flex-1 h-9 px-3 rounded-full bg-[#F7F7F8] border border-[#E7E7EA] text-xs font-mono text-[#0F1116] focus:outline-none focus:border-[#7141E8]"
-                  />
-                </div>
-
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {COLOR_SWATCHES.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setFgColor(color)}
-                      className={cn(
-                        'w-7 h-7 rounded-full border transition-transform hover:scale-110 shrink-0',
-                        fgColor === color ? 'ring-2 ring-[#7141E8] ring-offset-1' : 'border-black/10'
-                      )}
-                      style={{ backgroundColor: color }}
-                      aria-label={`Select color ${color}`}
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-7 h-7 rounded-full border border-black/10 shrink-0 shadow-2xs"
+                      style={{ backgroundColor: fgColor }}
                     />
-                  ))}
+                    <input
+                      id="fg-color-input"
+                      type="text"
+                      value={fgColor}
+                      onChange={(e) => setFgColor(e.target.value)}
+                      className="flex-1 h-9 px-3 rounded-full bg-[#F7F7F8] border border-[#E7E7EA] text-xs font-mono text-[#0F1116] focus:outline-none focus:border-[#7141E8]"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {COLOR_SWATCHES.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setFgColor(color)}
+                        className={cn(
+                          "w-7 h-7 rounded-full border transition-transform hover:scale-110 shrink-0",
+                          fgColor === color
+                            ? "ring-2 ring-[#7141E8] ring-offset-1"
+                            : "border-black/10",
+                        )}
+                        style={{ backgroundColor: color }}
+                        aria-label={`Select color ${color}`}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>}
+              )}
 
               {/* Background Color Input & Swatches */}
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between text-xs font-bold text-[#0F1116]">
                   <label htmlFor="bg-color-input">Background Color</label>
                   <span className="font-mono text-xs text-[#8E8E93] uppercase">
-                    {bgColor === 'transparent' ? 'None' : bgColor}
+                    {bgColor === "transparent" ? "None" : bgColor}
                   </span>
                 </div>
 
@@ -600,7 +1120,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                     className="w-7 h-7 rounded-full border border-black/10 shrink-0 shadow-2xs relative overflow-hidden"
                     style={{ backgroundColor: bgColor }}
                   >
-                    {bgColor === 'transparent' && (
+                    {bgColor === "transparent" && (
                       <div className="absolute inset-0 bg-red-400 rotate-45 h-[1.5px] top-1/2 -translate-y-1/2" />
                     )}
                   </div>
@@ -620,13 +1140,19 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                       type="button"
                       onClick={() => setBgColor(color)}
                       className={cn(
-                        'w-7 h-7 rounded-full border transition-transform hover:scale-110 shrink-0 relative overflow-hidden',
-                        bgColor === color ? 'ring-2 ring-[#7141E8] ring-offset-1' : 'border-black/10'
+                        "w-7 h-7 rounded-full border transition-transform hover:scale-110 shrink-0 relative overflow-hidden",
+                        bgColor === color
+                          ? "ring-2 ring-[#7141E8] ring-offset-1"
+                          : "border-black/10",
                       )}
                       style={{ backgroundColor: color }}
-                      aria-label={color === 'transparent' ? 'Transparent background' : `Background color ${color}`}
+                      aria-label={
+                        color === "transparent"
+                          ? "Transparent background"
+                          : `Background color ${color}`
+                      }
                     >
-                      {color === 'transparent' && (
+                      {color === "transparent" && (
                         <div className="absolute inset-0 bg-red-400 rotate-45 h-[1.5px] top-1/2 -translate-y-1/2" />
                       )}
                     </button>
@@ -647,8 +1173,8 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                   <span>Background Shape</span>
                   <ChevronRight
                     className={cn(
-                      'w-4 h-4 text-[#8E8E93] transition-transform duration-150',
-                      isBgShapeOpen && 'rotate-90'
+                      "w-4 h-4 text-[#8E8E93] transition-transform duration-150",
+                      isBgShapeOpen && "rotate-90",
                     )}
                   />
                 </button>
@@ -656,19 +1182,19 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                 {isBgShapeOpen && (
                   <div className="grid grid-cols-3 gap-2 pt-2">
                     {[
-                      { id: 'none', label: 'None' },
-                      { id: 'rounded-square', label: 'Rounded' },
-                      { id: 'circle', label: 'Circle' },
+                      { id: "none", label: "None" },
+                      { id: "rounded-square", label: "Rounded" },
+                      { id: "circle", label: "Circle" },
                     ].map((shape) => (
                       <button
                         key={shape.id}
                         type="button"
                         onClick={() => setBgShape(shape.id as any)}
                         className={cn(
-                          'py-2 text-xs font-semibold rounded-[10px] border transition-all hover:-translate-y-[1px] active:translate-y-0',
+                          "py-2 text-xs font-semibold rounded-[10px] border transition-all hover:-translate-y-[1px] active:translate-y-0",
                           bgShape === shape.id
-                            ? 'bg-[#0F1116] text-white border-[#0F1116]'
-                            : 'bg-[#F7F7F8] border-[#E7E7EA] text-[#0F1116]'
+                            ? "bg-[#0F1116] text-white border-[#0F1116]"
+                            : "bg-[#F7F7F8] border-[#E7E7EA] text-[#0F1116]",
                         )}
                       >
                         {shape.label}
@@ -689,8 +1215,8 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                   <span>Transform & Alignment</span>
                   <ChevronRight
                     className={cn(
-                      'w-4 h-4 text-[#8E8E93] transition-transform duration-150',
-                      isTransformOpen && 'rotate-90'
+                      "w-4 h-4 text-[#8E8E93] transition-transform duration-150",
+                      isTransformOpen && "rotate-90",
                     )}
                   />
                 </button>
@@ -711,10 +1237,10 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                       type="button"
                       onClick={() => setFlipH((prev) => !prev)}
                       className={cn(
-                        'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-[10px] border text-xs font-semibold transition-all hover:-translate-y-[1px] active:translate-y-0',
+                        "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-[10px] border text-xs font-semibold transition-all hover:-translate-y-[1px] active:translate-y-0",
                         flipH
-                          ? 'bg-[#0F1116] text-white border-[#0F1116]'
-                          : 'bg-[#F7F7F8] border-[#E7E7EA] text-[#0F1116] hover:bg-[#F1F1F3]'
+                          ? "bg-[#0F1116] text-white border-[#0F1116]"
+                          : "bg-[#F7F7F8] border-[#E7E7EA] text-[#0F1116] hover:bg-[#F1F1F3]",
                       )}
                       title="Flip horizontal"
                     >
@@ -726,10 +1252,10 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                       type="button"
                       onClick={() => setFlipV((prev) => !prev)}
                       className={cn(
-                        'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-[10px] border text-xs font-semibold transition-all hover:-translate-y-[1px] active:translate-y-0',
+                        "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-[10px] border text-xs font-semibold transition-all hover:-translate-y-[1px] active:translate-y-0",
                         flipV
-                          ? 'bg-[#0F1116] text-white border-[#0F1116]'
-                          : 'bg-[#F7F7F8] border-[#E7E7EA] text-[#0F1116] hover:bg-[#F1F1F3]'
+                          ? "bg-[#0F1116] text-white border-[#0F1116]"
+                          : "bg-[#F7F7F8] border-[#E7E7EA] text-[#0F1116] hover:bg-[#F1F1F3]",
                       )}
                       title="Flip vertical"
                     >
@@ -751,8 +1277,8 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                   <span>Effects & Opacity</span>
                   <ChevronRight
                     className={cn(
-                      'w-4 h-4 text-[#8E8E93] transition-transform duration-150',
-                      isEffectsOpen && 'rotate-90'
+                      "w-4 h-4 text-[#8E8E93] transition-transform duration-150",
+                      isEffectsOpen && "rotate-90",
                     )}
                   />
                 </button>
@@ -761,7 +1287,9 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                   <div className="flex flex-col gap-3 pt-2">
                     <div className="flex items-center justify-between text-xs text-[#0F1116]">
                       <span className="font-medium">Opacity</span>
-                      <span className="font-mono text-[#7141E8]">{opacity}%</span>
+                      <span className="font-mono text-[#7141E8]">
+                        {opacity}%
+                      </span>
                     </div>
                     <input
                       type="range"
@@ -778,20 +1306,20 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                     </div>
                     <div className="grid grid-cols-4 gap-1.5">
                       {[
-                        { id: 'none', label: 'None' },
-                        { id: 'subtle', label: 'Subtle' },
-                        { id: 'float', label: 'Float' },
-                        { id: 'glow', label: 'Glow' },
+                        { id: "none", label: "None" },
+                        { id: "subtle", label: "Subtle" },
+                        { id: "float", label: "Float" },
+                        { id: "glow", label: "Glow" },
                       ].map((sh) => (
                         <button
                           key={sh.id}
                           type="button"
                           onClick={() => setShadow(sh.id as any)}
                           className={cn(
-                            'py-1.5 text-[11px] font-semibold rounded-[8px] border text-center transition-all hover:-translate-y-[1px] active:translate-y-0',
+                            "py-1.5 text-[11px] font-semibold rounded-[8px] border text-center transition-all hover:-translate-y-[1px] active:translate-y-0",
                             shadow === sh.id
-                              ? 'bg-[#0F1116] text-white border-[#0F1116]'
-                              : 'bg-[#F7F7F8] border-[#E7E7EA] text-[#0F1116]'
+                              ? "bg-[#0F1116] text-white border-[#0F1116]"
+                              : "bg-[#F7F7F8] border-[#E7E7EA] text-[#0F1116]",
                           )}
                         >
                           {sh.label}
@@ -808,34 +1336,36 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
               {/* Large Preview Stage using CSS Grid-Paper Background */}
               <div
                 className={cn(
-                  'relative flex border border-[#E7E7EA] shadow-xs',
+                  "relative flex border border-[#E7E7EA] shadow-xs",
                   isIllustration
-                    ? 'w-full max-w-none h-[62dvh] min-h-[360px] max-h-[900px] items-start justify-start overflow-auto rounded-xl'
-                    : 'w-full max-w-xl h-[min(42dvh,360px)] min-h-[230px] md:h-auto md:aspect-4/3 items-center justify-center overflow-hidden rounded-[16px] md:rounded-[20px]'
+                    ? "w-full max-w-none h-[62dvh] min-h-[360px] max-h-[900px] items-start justify-start overflow-auto rounded-xl"
+                    : "w-full max-w-xl h-[min(42dvh,360px)] min-h-[230px] md:h-auto md:aspect-4/3 items-center justify-center overflow-hidden rounded-[16px] md:rounded-[20px]",
                 )}
                 style={{
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: isDark ? "#191B22" : "#FFFFFF",
                   backgroundImage: isIllustration
-                    ? 'radial-gradient(circle, #E7E7EA 1px, transparent 1px)'
-                    : 'radial-gradient(circle, #E7E7EA 1.25px, transparent 1.25px)',
-                  backgroundSize: isIllustration ? '16px 16px' : '20px 20px',
+                    ? `radial-gradient(circle, ${isDark ? "#353842" : "#E7E7EA"} 1px, transparent 1px)`
+                    : `radial-gradient(circle, ${isDark ? "#353842" : "#E7E7EA"} 1.25px, transparent 1.25px)`,
+                  backgroundSize: isIllustration ? "16px 16px" : "20px 20px",
                 }}
               >
                 {/* Visual optical crosshair lines */}
-                {!isIllustration && <>
-                  <div className="absolute inset-8 border border-dashed border-[#E7E7EA]/70 pointer-events-none rounded-[14px]" />
-                  <div className="absolute inset-y-0 w-[1px] bg-[#E7E7EA]/40 pointer-events-none" />
-                  <div className="absolute inset-x-0 h-[1px] bg-[#E7E7EA]/40 pointer-events-none" />
-                </>}
+                {!isIllustration && (
+                  <>
+                    <div className="absolute inset-8 border border-dashed border-[#E7E7EA]/70 pointer-events-none rounded-[14px]" />
+                    <div className="absolute inset-y-0 w-[1px] bg-[#E7E7EA]/40 pointer-events-none" />
+                    <div className="absolute inset-x-0 h-[1px] bg-[#E7E7EA]/40 pointer-events-none" />
+                  </>
+                )}
 
                 {/* Rendered Icon Stage with applied transformations */}
                 <div
                   className={cn(
                     isIllustration
-                      ? 'w-max h-max shrink-0 flex items-center justify-center p-6 transition-all duration-150'
-                      : 'max-w-[75vw] max-h-[34dvh] md:max-w-none md:max-h-none flex items-center justify-center p-4 sm:p-6 transition-all duration-150',
-                    bgShape === 'rounded-square' && 'rounded-[24px]',
-                    bgShape === 'circle' && 'rounded-full'
+                      ? "w-max h-max shrink-0 flex items-center justify-center p-6 transition-all duration-150"
+                      : "max-w-[75vw] max-h-[34dvh] md:max-w-none md:max-h-none flex items-center justify-center p-4 sm:p-6 transition-all duration-150",
+                    bgShape === "rounded-square" && "rounded-[24px]",
+                    bgShape === "circle" && "rounded-full",
                   )}
                   style={{
                     backgroundColor: bgColor,
@@ -848,12 +1378,22 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                     <div
                       className="block shrink-0 [&>svg]:block [&>svg]:max-w-none [&>svg]:max-h-none"
                       dangerouslySetInnerHTML={{
-                        __html: illustrationMarkup(icon.svg, size, illustrationHeight),
+                        __html: illustrationMarkup(
+                          icon.svg,
+                          size,
+                          illustrationHeight,
+                        ),
                       }}
                     />
                   ) : (
                     <IconComponent
-                      style={{ width: `${size * 2}px`, height: `${size * 2}px`, maxWidth: '70vw', maxHeight: '34dvh', color: fgColor }}
+                      style={{
+                        width: `${size * 2}px`,
+                        height: `${size * 2}px`,
+                        maxWidth: "70vw",
+                        maxHeight: "34dvh",
+                        color: fgColor,
+                      }}
                       strokeWidth={strokeWidth}
                     />
                   )}
@@ -861,7 +1401,10 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
 
                 {/* Dimension Pill Badge */}
                 <span className="absolute bottom-3 right-3 z-10 text-[10px] font-mono text-[#8E8E93] bg-white px-2 py-0.5 rounded-full border border-[#E7E7EA] shadow-2xs">
-                  {isIllustration ? `${size} × ${illustrationHeight}` : `${size} × ${size}`} px
+                  {isIllustration
+                    ? `${size} × ${illustrationHeight}`
+                    : `${size} × ${size}`}{" "}
+                  px
                 </span>
               </div>
 
@@ -884,8 +1427,13 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                       </span>
                     </div>
                     {styleVariants.length > 1 && (
-                      <div className="flex items-center gap-1.5 mt-3 flex-wrap" aria-label="Icon style variants">
-                        <span className="text-[10px] font-medium text-[#85858D] mr-0.5">Style</span>
+                      <div
+                        className="flex items-center gap-1.5 mt-3 flex-wrap"
+                        aria-label="Icon style variants"
+                      >
+                        <span className="text-[10px] font-medium text-[#85858D] mr-0.5">
+                          Style
+                        </span>
                         {styleVariants.map((variant) => (
                           <button
                             key={variant.id}
@@ -893,10 +1441,10 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                             onClick={() => onSelectIcon(variant.id)}
                             aria-pressed={variant.id === icon.id}
                             className={cn(
-                              'px-2.5 py-1 rounded-full border text-[10px] font-medium capitalize transition-colors',
+                              "px-2.5 py-1 rounded-full border text-[10px] font-medium capitalize transition-colors",
                               variant.id === icon.id
-                                ? 'bg-[#7141E8] border-[#7141E8] text-white'
-                                : 'bg-white border-[#E7E7EA] text-[#66666E] hover:border-[#7141E8]/40 hover:text-[#7141E8]'
+                                ? "bg-[#7141E8] border-[#7141E8] text-white"
+                                : "bg-white border-[#E7E7EA] text-[#66666E] hover:border-[#7141E8]/40 hover:text-[#7141E8]",
                             )}
                           >
                             {variant.style}
@@ -912,21 +1460,26 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                       type="button"
                       onClick={() => onToggleSave(icon.id)}
                       className={cn(
-                        'flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold border transition-all shadow-subtle hover:-translate-y-[1px] active:translate-y-0',
+                        "flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold border transition-all shadow-subtle hover:-translate-y-[1px] active:translate-y-0",
                         isSaved
-                          ? 'bg-[#0F1116] text-white border-[#0F1116]'
-                          : 'bg-white hover:bg-[#F7F7F8] text-[#0F1116] border-[#E7E7EA]'
+                          ? "bg-[#0F1116] text-white border-[#0F1116]"
+                          : "bg-white hover:bg-[#F7F7F8] text-[#0F1116] border-[#E7E7EA]",
                       )}
                     >
-                      <Bookmark className={cn('w-3.5 h-3.5', isSaved && 'fill-current text-[#B89AFF]')} />
-                      <span>{isSaved ? 'Saved' : 'Save'}</span>
+                      <Bookmark
+                        className={cn(
+                          "w-3.5 h-3.5",
+                          isSaved && "fill-current text-[#B89AFF]",
+                        )}
+                      />
+                      <span>{isSaved ? "Saved" : "Save"}</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => {
-                        onFindSimilar?.(icon.category)
-                        onClose()
+                        onFindSimilar?.(icon.category);
+                        onClose();
                       }}
                       className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-[#F7F7F8] text-xs font-semibold text-[#0F1116] border border-[#E7E7EA] transition-all shadow-subtle hover:-translate-y-[1px] active:translate-y-0"
                     >
@@ -942,9 +1495,9 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                     <span className="text-xs font-bold text-[#0F1116] uppercase tracking-wider">
                       Similar in {icon.category}
                     </span>
-                    <div className="grid grid-cols-5 gap-2.5 mt-2.5">
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-2.5 mt-2.5">
                       {similarIcons.map((sim) => {
-                        const SimComp = sim.component
+                        const SimComp = sim.component;
                         return (
                           <button
                             key={sim.id}
@@ -957,7 +1510,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                               {sim.name}
                             </span>
                           </button>
-                        )
+                        );
                       })}
                     </div>
                   </div>
@@ -967,11 +1520,11 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                 {matchingIcons.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-[#E7E7EA]">
                     <span className="text-xs font-bold text-[#0F1116] uppercase tracking-wider">
-                      More Icons Matching {icon.name.split(' ')[0]}
+                      More Icons Matching {icon.name.split(" ")[0]}
                     </span>
-                    <div className="grid grid-cols-6 gap-2 mt-2.5">
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mt-2.5">
                       {matchingIcons.map((mat) => {
-                        const MatComp = mat.component
+                        const MatComp = mat.component;
                         return (
                           <button
                             key={mat.id}
@@ -985,7 +1538,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                               {mat.name}
                             </span>
                           </button>
-                        )
+                        );
                       })}
                     </div>
                   </div>
@@ -1004,15 +1557,15 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 w-full">
-                <div className="flex-1 min-w-0 relative flex">
+              <div ref={exportActionsRef} className="flex w-full flex-wrap items-center gap-2">
+                <div className="flex min-w-0 flex-1">
                   <button
                     type="button"
                     onClick={handleCopySvg}
                     className="flex-1 min-w-0 flex items-center justify-center gap-2 h-10 px-3 rounded-l-[11px] bg-[#7141E8] hover:bg-[#6031D4] text-white text-xs font-semibold transition-colors"
                   >
-                    <Copy className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">Copy SVG</span>
+                    {hasCopiedSvg ? <Check className="w-3.5 h-3.5 shrink-0" /> : <Copy className="w-3.5 h-3.5 shrink-0" />}
+                    <span className="truncate">{hasCopiedSvg ? "Copied" : "Copy SVG"}</span>
                   </button>
 
                   <button
@@ -1024,40 +1577,39 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                   >
                     <ChevronDown className="w-3.5 h-3.5" />
                   </button>
-
-                  {isSvgSplitOpen && (
-                    <div className="absolute right-0 top-[calc(100%+8px)] w-48 bg-white border border-[#E7E7EA] rounded-xl shadow-lg py-1.5 z-40">
-                    <button
-                      type="button"
-                      onClick={handleCopyJsx}
-                      className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-[#0F1116] hover:bg-[#F7F7F8] text-left"
-                    >
-                      <Code2 className="w-3.5 h-3.5 text-[#7141E8]" />
-                      <span>Copy React JSX</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCopySvg}
-                      className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-[#0F1116] hover:bg-[#F7F7F8] text-left"
-                    >
-                      <Copy className="w-3.5 h-3.5 text-[#8E8E93]" />
-                      <span>Copy Raw SVG</span>
-                    </button>
-                    </div>
-                  )}
                 </div>
 
                 <button
                   type="button"
                   onClick={(event) => {
-                    event.stopPropagation()
-                    handleDownloadSvg()
+                    event.stopPropagation();
+                    handleDownloadSvg();
                   }}
                   className="flex-1 min-w-0 flex items-center justify-center gap-2 h-10 px-3 rounded-[11px] border border-[#E1D9F6] bg-white hover:bg-[#F8F6FF] text-[#4E2CAF] text-xs font-semibold transition-colors"
                 >
                   <Download className="w-3.5 h-3.5 shrink-0" />
                   <span className="truncate">Download SVG</span>
                 </button>
+                {isSvgSplitOpen && (
+                  <div className="flex w-full overflow-hidden rounded-[11px] border border-[#E7E7EA] bg-white">
+                    <button
+                      type="button"
+                      onClick={handleCopyJsx}
+                      className="flex min-h-10 flex-1 items-center justify-center gap-1.5 px-3 text-xs font-medium text-[#0F1116] hover:bg-[#F7F7F8]"
+                    >
+                      <Code2 className="h-3.5 w-3.5 text-[#7141E8]" />
+                      Copy React JSX
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCopySvg}
+                      className="flex min-h-10 flex-1 items-center justify-center gap-1.5 border-l border-[#E7E7EA] px-3 text-xs font-medium text-[#0F1116] hover:bg-[#F7F7F8]"
+                    >
+                      <Copy className="h-3.5 w-3.5 text-[#8E8E93]" />
+                      Copy Raw SVG
+                    </button>
+                  </div>
+                )}
               </div>
               <p className="-mt-3 text-[10px] leading-relaxed text-[#85858D]">
                 SVG exports include this icon’s source and license metadata.
@@ -1067,7 +1619,9 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
               <div className="flex flex-col gap-2 p-3.5 rounded-[14px] bg-[#F7F7F8] border border-[#E7E7EA]">
                 <div className="flex items-center justify-between text-xs font-bold text-[#0F1116]">
                   <label htmlFor="png-scale-select">Raster PNG Format</label>
-                  <span className="text-[10px] text-[#8E8E93] font-mono">Lossless</span>
+                  <span className="text-[10px] text-[#8E8E93] font-mono">
+                    Lossless
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -1086,10 +1640,10 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
 
                   <button
                     type="button"
-                    onClick={handleCopyPng}
+                    onClick={handleDownloadPng}
                     className="px-3.5 h-9 rounded-[10px] bg-white hover:bg-[#F1F1F3] border border-[#E7E7EA] text-xs font-semibold text-[#0F1116] transition-all hover:-translate-y-[1px] active:translate-y-0 shadow-2xs"
                   >
-                    Copy PNG
+                    Download PNG
                   </button>
                 </div>
               </div>
@@ -1110,12 +1664,40 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
 
                 <div className="relative rounded-[12px] bg-[#0F1116] text-[#F1F1F3] p-3 text-[11px] font-mono overflow-x-auto max-h-36 no-scrollbar border border-black/10">
                   <pre className="m-0 leading-relaxed">
-                    <span className="text-[#B89AFF]">&lt;svg</span> <span className="text-[#38BDF8]">xmlns</span>=<span className="text-[#A7F3D0]">"http://www.w3.org/2000/svg"</span>{'\n'}
-                    {'  '}<span className="text-[#38BDF8]">width</span>=<span className="text-[#A7F3D0]">"{size}"</span> <span className="text-[#38BDF8]">height</span>=<span className="text-[#A7F3D0]">"{size}"</span>{'\n'}
-                    {'  '}<span className="text-[#38BDF8]">stroke</span>=<span className="text-[#A7F3D0]">"{fgColor}"</span> <span className="text-[#38BDF8]">stroke-width</span>=<span className="text-[#A7F3D0]">"{strokeWidth}"</span>{'\n'}
-                    {'  '}<span className="text-[#38BDF8]">fill</span>=<span className="text-[#A7F3D0]">"none"</span><span className="text-[#B89AFF]">&gt;</span>{'\n'}
-                    {'  '}<span className="text-[#64748B]">&lt;!-- {icon.name} from {icon.source} --&gt;</span>{'\n'}
-                    {'  '}<span className="text-[#B89AFF]">&lt;path</span> <span className="text-[#38BDF8]">d</span>=<span className="text-[#A7F3D0]">"M..."</span><span className="text-[#B89AFF]">&gt;&lt;/path&gt;</span>{'\n'}
+                    <span className="text-[#B89AFF]">&lt;svg</span>{" "}
+                    <span className="text-[#38BDF8]">xmlns</span>=
+                    <span className="text-[#A7F3D0]">
+                      "http://www.w3.org/2000/svg"
+                    </span>
+                    {"\n"}
+                    {"  "}
+                    <span className="text-[#38BDF8]">width</span>=
+                    <span className="text-[#A7F3D0]">"{size}"</span>{" "}
+                    <span className="text-[#38BDF8]">height</span>=
+                    <span className="text-[#A7F3D0]">"{size}"</span>
+                    {"\n"}
+                    {"  "}
+                    <span className="text-[#38BDF8]">stroke</span>=
+                    <span className="text-[#A7F3D0]">"{fgColor}"</span>{" "}
+                    <span className="text-[#38BDF8]">stroke-width</span>=
+                    <span className="text-[#A7F3D0]">"{strokeWidth}"</span>
+                    {"\n"}
+                    {"  "}
+                    <span className="text-[#38BDF8]">fill</span>=
+                    <span className="text-[#A7F3D0]">"none"</span>
+                    <span className="text-[#B89AFF]">&gt;</span>
+                    {"\n"}
+                    {"  "}
+                    <span className="text-[#64748B]">
+                      &lt;!-- {icon.name} from {icon.source} --&gt;
+                    </span>
+                    {"\n"}
+                    {"  "}
+                    <span className="text-[#B89AFF]">&lt;path</span>{" "}
+                    <span className="text-[#38BDF8]">d</span>=
+                    <span className="text-[#A7F3D0]">"M..."</span>
+                    <span className="text-[#B89AFF]">&gt;&lt;/path&gt;</span>
+                    {"\n"}
                     <span className="text-[#B89AFF]">&lt;/svg&gt;</span>
                   </pre>
                 </div>
@@ -1134,11 +1716,11 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                 </div>
 
                 <p className="text-[11px] text-[#8E8E93] m-0 leading-normal">
-                  {icon.license === 'BSD'
-                    ? 'Keep the original copyright, license conditions, and disclaimer with redistributed copies.'
-                    : icon.license === 'CC0-1.0'
-                      ? 'Released into the public domain; author credit is appreciated when available.'
-                      : 'Check the source license terms before redistributing or modifying this artwork.'}
+                  {icon.license === "BSD"
+                    ? "Keep the original copyright, license conditions, and disclaimer with redistributed copies."
+                    : icon.license === "CC0-1.0"
+                      ? "Released into the public domain; author credit is appreciated when available."
+                      : "Check the source license terms before redistributing or modifying this artwork."}
                 </p>
               </div>
 
@@ -1146,9 +1728,29 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
               <div className="p-3.5 rounded-[12px] bg-[#7141E8]/8 border border-[#7141E8]/20 flex items-start gap-2.5 text-xs text-[#0F1116]">
                 <Sparkles className="w-4 h-4 text-[#7141E8] shrink-0 mt-0.5" />
                 <p className="m-0 leading-relaxed text-[11px]">
-                  <strong>Attribution Notice:</strong>{' '}
-                  {icon.author ? <>Created by <span className="font-semibold text-[#7141E8]">{icon.author}</span> and shared through <span className="font-semibold text-[#7141E8]">{icon.source}</span>.</> : <>Shared through <span className="font-semibold text-[#7141E8]">{icon.source}</span>.</>}
-                  {' '}Keep this source information with the exported artwork.
+                  <strong>Attribution Notice:</strong>{" "}
+                  {icon.author ? (
+                    <>
+                      Created by{" "}
+                      <span className="font-semibold text-[#7141E8]">
+                        {icon.author}
+                      </span>{" "}
+                      and shared through{" "}
+                      <span className="font-semibold text-[#7141E8]">
+                        {icon.source}
+                      </span>
+                      .
+                    </>
+                  ) : (
+                    <>
+                      Shared through{" "}
+                      <span className="font-semibold text-[#7141E8]">
+                        {icon.source}
+                      </span>
+                      .
+                    </>
+                  )}{" "}
+                  Keep this source information with the exported artwork.
                 </p>
               </div>
             </div>
@@ -1176,5 +1778,5 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
         </AnimatePresence>
       </div>
     </AnimatePresence>
-  )
-}
+  );
+};

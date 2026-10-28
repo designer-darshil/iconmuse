@@ -14,12 +14,11 @@ import { useShellState } from "./hooks/useShellState";
 import { useIconFilters } from "./hooks/useIconFilters";
 import { ICON_PACKS } from "./data/iconPacks";
 import { downloadIconsZip } from "./utils/downloadIconsZip";
-import { ICON_CATALOG } from "./data/iconCatalog";
 import type { RightSidebarPanel, IconItem } from "./types";
 import { cn } from "./utils/cn";
 import { AnalyticsConsent } from "./components/common/AnalyticsConsent";
 
-export default function App() {
+export default function App({ theme, onThemeChange, catalogReady }: { theme: 'light' | 'dark'; onThemeChange: (theme: 'light' | 'dark') => void; catalogReady: boolean }) {
   const { breakpoint, isMobile, isTablet, isDesktop } = useBreakpoint();
 
   const {
@@ -27,7 +26,6 @@ export default function App() {
     setActiveRailTab,
     toggleRightSidebar,
     setRightSidebarOpen,
-    toggleMobileDrawer,
     setMobileDrawerOpen,
     setSelectedIcon,
   } = useShellState(breakpoint);
@@ -60,16 +58,32 @@ export default function App() {
     resetFilters,
     openDetailIcon,
     closeDetailIcon,
-  } = useIconFilters();
+  } = useIconFilters(catalogReady);
 
-  // Active right sidebar panel ('filters' | 'inspector' | 'packs' | 'saved')
+  // Active right sidebar panel
   const [activePanel, setActivePanel] = useState<RightSidebarPanel>("filters");
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+  const [isSidebarFloating, setIsSidebarFloating] = useState(false);
+  const themedActiveColor = theme === 'dark' && state.activeColor === '#0F1116' ? '#F4F4F5' : state.activeColor;
+
+  const handleCloseSidebar = () => {
+    setRightSidebarOpen(false);
+    setIsSidebarFloating(false);
+  };
+
+  const handleOpenFilters = () => {
+    setActivePanel("filters");
+    setRightSidebarOpen(true);
+  };
 
   const handleSelectRailItem = (tabId: string) => {
     setActiveRailTab(tabId);
     const panelMap: Record<string, RightSidebarPanel> = {
-      discover: 'filters', collections: 'packs', saved: 'saved', extensions: 'extensions', help: 'help',
+      discover: "filters",
+      collections: "packs",
+      saved: "saved",
+      extensions: "extensions",
+      help: "help",
     };
     const panel = panelMap[tabId];
     if (panel) {
@@ -77,17 +91,26 @@ export default function App() {
       setRightSidebarOpen(true);
     }
   };
-  const handleFocusSearch = () => {
-    document.querySelector<HTMLInputElement>('input[placeholder*="Search"]')?.focus();
+  const handleMobileNavigation = (destination: string) => {
+    setMobileDrawerOpen(false);
+    if (destination === "discover") {
+      setActiveRailTab("discover");
+      setRightSidebarOpen(false);
+      return;
+    }
+    handleSelectRailItem(destination);
   };
 
   // Handle icon selection from the grid: opens deep-linked detail modal
   const handleSelectIcon = (icon: IconItem) => {
     setSelectedIcon(icon);
+    if (isMobile) setRightSidebarOpen(false);
     openDetailIcon(icon.id);
   };
 
-  const handleDownloadZip = (iconIds: string[]) => { void downloadIconsZip(iconIds); };
+  const handleDownloadZip = (iconIds: string[]) => {
+    void downloadIconsZip(iconIds);
+  };
 
   return (
     <div className="app-root flex flex-col bg-white text-[#0F1116]">
@@ -101,6 +124,10 @@ export default function App() {
 
       {!isMobile && (
         <DesktopHeader
+          theme={theme}
+          onThemeChange={onThemeChange}
+          activeCategory={filters.category}
+          onSelectCategory={setCategory}
           onToggleSidebar={toggleRightSidebar}
           isSidebarOpen={state.isRightSidebarOpen}
           totalIconsCount={catalogCount}
@@ -108,9 +135,14 @@ export default function App() {
       )}
       {isMobile && (
         <MobileTopBar
-          onOpenMobileDrawer={toggleMobileDrawer}
-          onOpenSidebar={toggleRightSidebar}
-          onFocusSearch={handleFocusSearch}
+          theme={theme}
+          onThemeChange={onThemeChange}
+          activeCategory={filters.category}
+          onSelectCategory={setCategory}
+          onOpenMenu={() => {
+            setRightSidebarOpen(false);
+            setMobileDrawerOpen(true);
+          }}
         />
       )}
 
@@ -118,7 +150,9 @@ export default function App() {
       <div
         className={cn(
           "app-grid-shell",
-          isDesktop && !state.isRightSidebarOpen && "!grid-cols-[var(--rail-width)_1fr]",
+          isDesktop &&
+            (!state.isRightSidebarOpen || isSidebarFloating) &&
+            "!grid-cols-[var(--rail-width)_1fr]",
         )}
       >
         {!isMobile && (
@@ -129,12 +163,16 @@ export default function App() {
         )}
         {/* 4. Main Workspace Area */}
         <MainWorkspace
+          isLoading={!catalogReady}
           icons={filteredIcons}
           totalCount={totalCount}
           searchQuery={filters.searchQuery}
           onSearchChange={setSearchQuery}
           activeCategory={filters.category}
           onSelectCategory={setCategory}
+          sourceCounts={sourceCounts}
+          selectedSources={filters.selectedSources}
+          onToggleSource={toggleSource}
           activeSort={filters.sort}
           onSelectSort={setSort}
           activePackId={filters.activePackId}
@@ -145,11 +183,13 @@ export default function App() {
           onToggleSave={toggleSave}
           onToggleCompare={toggleCompare}
           onClearCompare={clearCompare}
+          onOpenCompare={() => setIsCompareModalOpen(true)}
           onResetFilters={resetFilters}
-          onToggleSidebar={toggleRightSidebar}
+          onToggleSidebar={handleOpenFilters}
           isSidebarOpen={state.isRightSidebarOpen}
           breakpoint={breakpoint}
-          activeColor={state.activeColor}
+          activeColor={themedActiveColor}
+          isDark={theme === 'dark'}
           onSelectIcon={handleSelectIcon}
           selectedIcon={state.selectedIcon}
         />
@@ -159,12 +199,13 @@ export default function App() {
         {isDesktop && (
           <RightSidebar
             isOpen={state.isRightSidebarOpen}
-            onClose={() => setRightSidebarOpen(false)}
+            onClose={handleCloseSidebar}
             isOverlay={false}
+            isFloating={isSidebarFloating}
+            onToggleFloating={() => setIsSidebarFloating((isFloating) => !isFloating)}
             activePanel={activePanel}
             onSelectPanel={setActivePanel}
-            selectedIcon={state.selectedIcon}
-            activeColor={state.activeColor}
+            activeColor={themedActiveColor}
             savedIconIds={savedIconIds}
             onToggleSave={toggleSave}
             onSelectIcon={handleSelectIcon}
@@ -195,12 +236,12 @@ export default function App() {
       {(isTablet || isMobile) && (
         <RightSidebar
           isOpen={state.isRightSidebarOpen}
-          onClose={() => setRightSidebarOpen(false)}
+          onClose={handleCloseSidebar}
           isOverlay={true}
+          isMobile={isMobile}
           activePanel={activePanel}
           onSelectPanel={setActivePanel}
-          selectedIcon={state.selectedIcon}
-          activeColor={state.activeColor}
+          activeColor={themedActiveColor}
           savedIconIds={savedIconIds}
           onToggleSave={toggleSave}
           onSelectIcon={handleSelectIcon}
@@ -230,15 +271,7 @@ export default function App() {
         isOpen={state.isMobileDrawerOpen}
         onClose={() => setMobileDrawerOpen(false)}
         activeNavId={state.activeRailTab}
-        onSelectNav={handleSelectRailItem}
-        categories={ICON_CATALOG.reduce((items, icon) => {
-          if (!items.some((item) => item.slug === icon.category)) {
-            items.push({ id: icon.category, slug: icon.category, name: icon.category, count: 0 });
-          }
-          return items;
-        }, [] as Array<{ id: string; slug: string; name: string; count: number }>)}
-        activeCategory={filters.category}
-        onSelectCategory={setCategory}
+        onSelectNav={handleMobileNavigation}
       />
 
       {/* Bottom Floating Comparison Tray (Appears when >= 2 icons are selected) */}
@@ -247,7 +280,7 @@ export default function App() {
         onRemoveCompare={toggleCompare}
         onClearCompare={clearCompare}
         onOpenCompareModal={() => setIsCompareModalOpen(true)}
-        activeColor={state.activeColor}
+        activeColor={themedActiveColor}
       />
 
       {/* Side-by-Side Comparison Preview Modal */}
@@ -255,7 +288,7 @@ export default function App() {
         isOpen={isCompareModalOpen}
         onClose={() => setIsCompareModalOpen(false)}
         compareIconIds={compareIconIds}
-        activeColor={state.activeColor}
+        activeColor={themedActiveColor}
       />
 
       {/* Deep-linkable Icon Detail Modal (?icon=<id>) */}
@@ -265,6 +298,7 @@ export default function App() {
         onSelectIcon={openDetailIcon}
         savedIconIds={savedIconIds}
         onToggleSave={toggleSave}
+        isDark={theme === 'dark'}
         onFindSimilar={(cat) => {
           setCategory(cat);
           closeDetailIcon();
