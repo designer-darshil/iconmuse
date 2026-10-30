@@ -288,28 +288,44 @@ for (const record of records) {
   unique.push(record)
 }
 const catalogJson = JSON.stringify(unique)
-const catalogVersion = createHash('sha256').update(catalogJson).digest('hex').slice(0, 12)
+const catalogVersion = createHash('sha256').update('metadata-svg-shards-v3\0').update(catalogJson).digest('hex').slice(0, 12)
 const catalogDir = path.join(root, 'public')
-const maxShardBytes = 4 * 1024 * 1024
+// Smaller source-local shards keep a filtered view from downloading a whole
+// icon family when it only needs the first visible batch.
+const maxShardBytes = 512 * 1024
 const shards = []
-let shard = []
-let shardBytes = 2 // JSON array brackets
-const flushShard = () => {
-  if (shard.length === 0) return
-  const file = `icon-catalog-${catalogVersion}-${String(shards.length).padStart(3, '0')}.json.gz`
-  fs.writeFileSync(path.join(catalogDir, file), gzipSync(JSON.stringify(shard), { level: 9 }))
-  shards.push({ file, count: shard.length })
-  shard = []
-  shardBytes = 2
-}
+const shardById = new Map()
+const recordsBySource = new Map()
 for (const record of unique) {
-  const bytes = Buffer.byteLength(JSON.stringify(record)) + (shard.length ? 1 : 0)
-  if (shardBytes + bytes > maxShardBytes && shard.length) flushShard()
-  shard.push(record)
-  shardBytes += bytes
+  const records = recordsBySource.get(record.source) ?? []
+  records.push(record)
+  recordsBySource.set(record.source, records)
 }
-flushShard()
-const manifest = { version: catalogVersion, count: unique.length, shards }
+for (const [source, sourceRecords] of recordsBySource) {
+  let shard = []
+  let shardBytes = 2 // JSON object braces
+  const flushShard = () => {
+    if (shard.length === 0) return
+    const file = `icon-catalog-${catalogVersion}-${String(shards.length).padStart(3, '0')}.json.gz`
+    const svgData = Object.fromEntries(shard.map(({ id, svg }) => [id, svg]))
+    fs.writeFileSync(path.join(catalogDir, file), gzipSync(JSON.stringify(svgData), { level: 9 }))
+    shards.push({ file, source, count: shard.length })
+    for (const { id } of shard) shardById.set(id, file)
+    shard = []
+    shardBytes = 2
+  }
+  for (const record of sourceRecords) {
+    const bytes = Buffer.byteLength(JSON.stringify([record.id, record.svg])) + (shard.length ? 1 : 0)
+    if (shardBytes + bytes > maxShardBytes && shard.length) flushShard()
+    shard.push(record)
+    shardBytes += bytes
+  }
+  flushShard()
+}
+const metadata = unique.map(({ svg, ...record }) => ({ ...record, svgShard: shardById.get(record.id) }))
+const metadataFile = `icon-catalog-${catalogVersion}-metadata.json.gz`
+fs.writeFileSync(path.join(catalogDir, metadataFile), gzipSync(JSON.stringify(metadata), { level: 9 }))
+const manifest = { version: catalogVersion, count: unique.length, metadataFile, shards }
 fs.writeFileSync(path.join(catalogDir, 'icon-catalog-manifest.json'), JSON.stringify(manifest))
 
 // Remove the previous single-file catalog and obsolete shards so production
@@ -317,7 +333,7 @@ fs.writeFileSync(path.join(catalogDir, 'icon-catalog-manifest.json'), JSON.strin
 for (const file of fs.readdirSync(catalogDir)) {
   if (file === 'icon-catalog.json' || file === 'icon-catalog.json.gz') {
     fs.rmSync(path.join(catalogDir, file), { force: true })
-  } else if (/^icon-catalog-[a-f0-9]{12}-\d{3}\.json\.gz$/.test(file) && !shards.some((entry) => entry.file === file)) {
+  } else if (/^icon-catalog-[a-f0-9]{12}-(?:\d{3}|metadata)\.json\.gz$/.test(file) && file !== metadataFile && !shards.some((entry) => entry.file === file)) {
     fs.rmSync(path.join(catalogDir, file), { force: true })
   }
 }
@@ -354,4 +370,4 @@ for (const [source, target] of [
   ['public/illustrations/bioicons/licenses/bsd.txt', 'bioicons-BSD.txt'],
   ['public/illustrations/ira-design/LICENSE.txt', 'ira-design-MIT.txt'],
 ]) fs.copyFileSync(path.join(root, source), path.join(licenseDir, target))
-console.log(`Wrote ${unique.length} icons across ${shards.length} compressed catalog shards`)
+console.log(`Wrote metadata and ${unique.length} SVGs across ${shards.length} compressed shards`)

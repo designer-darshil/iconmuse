@@ -61,10 +61,7 @@ export function useIconFilters(catalogReady = true) {
     if (typeof window === 'undefined') return []
     try {
       const stored = localStorage.getItem(LOCAL_STORAGE_SAVED_KEY)
-      if (stored) {
-        const availableIds = new Set(ICON_CATALOG.map((icon) => icon.id))
-        return (JSON.parse(stored) as string[]).filter((id) => availableIds.has(id))
-      }
+      if (stored) return (JSON.parse(stored) as unknown[]).filter((id): id is string => typeof id === 'string')
     } catch {
       // fallback
     }
@@ -74,10 +71,9 @@ export function useIconFilters(catalogReady = true) {
     if (typeof window === 'undefined') return []
     try {
       const parsed = JSON.parse(localStorage.getItem(LOCAL_STORAGE_COLLECTIONS_KEY) || '[]') as IconCollection[]
-      const validIds = new Set(ICON_CATALOG.map((icon) => icon.id))
       return parsed
         .filter((collection) => collection && typeof collection.id === 'string' && typeof collection.name === 'string' && Array.isArray(collection.iconIds))
-        .map((collection) => ({ ...collection, iconIds: collection.iconIds.filter((id) => validIds.has(id)) }))
+        .map((collection) => ({ ...collection, iconIds: collection.iconIds.filter((id): id is string => typeof id === 'string') }))
     } catch {
       return []
     }
@@ -99,6 +95,18 @@ export function useIconFilters(catalogReady = true) {
       // Ignore storage errors.
     }
   }, [collections])
+
+  // The shell mounts while the compact catalog metadata is loading. Reconcile
+  // saved IDs only after the metadata arrives so existing favorites survive.
+  useEffect(() => {
+    if (!catalogReady) return
+    const availableIds = new Set(ICON_CATALOG.map((icon) => icon.id))
+    setSavedIconIds((previous) => previous.filter((id) => availableIds.has(id)))
+    setCollections((previous) => previous.map((collection) => ({
+      ...collection,
+      iconIds: collection.iconIds.filter((id) => availableIds.has(id)),
+    })))
+  }, [catalogReady])
 
   // Compare State (Up to 4 icons)
   const [compareIconIds, setCompareIconIds] = useState<string[]>([])

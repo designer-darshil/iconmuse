@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 // import { AnnouncementStrip } from "./components/layout/AnnouncementStrip";
 import { DesktopHeader } from "./components/layout/DesktopHeader";
 import { LeftNavRail } from "./components/layout/LeftNavRail";
@@ -11,6 +11,7 @@ import { useBreakpoint } from "./hooks/useBreakpoint";
 import { useShellState } from "./hooks/useShellState";
 import { useIconFilters } from "./hooks/useIconFilters";
 import { ICON_PACKS } from "./data/iconPacks";
+import { getIconCatalogItems, loadIconSvgsFor } from "./data/iconCatalog";
 import type { RightSidebarPanel, IconItem } from "./types";
 import { cn } from "./utils/cn";
 import { AnalyticsConsent } from "./components/common/AnalyticsConsent";
@@ -67,7 +68,23 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
   const [activePanel, setActivePanel] = useState<RightSidebarPanel>("filters");
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
   const [isSidebarFloating, setIsSidebarFloating] = useState(false);
+  const [, setCatalogRevision] = useState(0);
   const themedActiveColor = theme === 'dark' && state.activeColor === '#0F1116' ? '#F4F4F5' : state.activeColor;
+
+  useEffect(() => {
+    if (!catalogReady) return;
+    const requiredIds = new Set([
+      ...savedIconIds,
+      ...collections.flatMap((collection) => collection.iconIds),
+      ...(detailIconId ? [detailIconId] : []),
+    ]);
+    const requiredIcons = getIconCatalogItems(requiredIds).filter((icon) => !icon.svg);
+    if (requiredIcons.length) {
+      void loadIconSvgsFor(requiredIcons)
+        .then(() => setCatalogRevision((revision) => revision + 1))
+        .catch(() => undefined);
+    }
+  }, [catalogReady, savedIconIds, collections, detailIconId]);
 
   const handleCloseSidebar = () => {
     setRightSidebarOpen(false);

@@ -18,6 +18,7 @@ export interface IconItem {
   author?: string
   component: ComponentType<LucideProps>
   svg: string
+  svgShard?: string
   tags: string[]
   viewBox?: string
   isNew?: boolean

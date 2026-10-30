@@ -42,9 +42,11 @@ export const IconTile: React.FC<IconTileProps> = ({
   const [hasCopied, setHasCopied] = useState(false);
   const IconComponent = icon.component;
   const isIllustration = icon.category === "Illustrations";
+  const isSvgReady = Boolean(icon.svg);
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isSvgReady) return;
     onCopySvg(icon);
     setHasCopied(true);
     setTimeout(() => setHasCopied(false), 1400);
@@ -65,9 +67,11 @@ export const IconTile: React.FC<IconTileProps> = ({
       role="button"
       tabIndex={0}
       data-selected={isSelected}
-      onClick={() => onSelectIcon(icon)}
+      aria-disabled={!isSvgReady}
+      aria-busy={!isSvgReady}
+      onClick={() => { if (isSvgReady) onSelectIcon(icon) }}
       onKeyDown={(e) =>
-        (e.key === "Enter" || e.key === " ") && onSelectIcon(icon)
+        isSvgReady && (e.key === "Enter" || e.key === " ") && onSelectIcon(icon)
       }
       aria-label={`${icon.name} icon from ${icon.source}`}
       className={cn(
@@ -94,7 +98,9 @@ export const IconTile: React.FC<IconTileProps> = ({
 
       {/* Centered Icon Preview */}
       <div className="icon-tile__preview flex min-h-0 w-full flex-1 items-center justify-center">
-        {isIllustration ? (
+        {!isSvgReady ? (
+          <span className="size-8 animate-pulse rounded-md bg-[var(--surface-strong)]" aria-label="Loading artwork" />
+        ) : isIllustration ? (
           <div
             aria-hidden="true"
             className="flex h-16 w-20 items-center justify-center overflow-hidden transition-transform duration-150 group-hover:scale-[1.03] [&>svg]:block [&>svg]:h-16 [&>svg]:w-20"
@@ -132,6 +138,7 @@ export const IconTile: React.FC<IconTileProps> = ({
         <button
           type="button"
           onClick={handleCopy}
+          disabled={!isSvgReady}
           className={cn(
             "inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--surface-strong)] hover:text-[var(--ink)]",
             hasCopied && "text-[var(--success)]",
@@ -149,6 +156,7 @@ export const IconTile: React.FC<IconTileProps> = ({
         <button
           type="button"
           onClick={handleCompare}
+          disabled={!isSvgReady}
           aria-pressed={isCompared}
           className={cn(
             "inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--surface-strong)] hover:text-[var(--ink)]",

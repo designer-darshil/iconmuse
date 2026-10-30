@@ -19,83 +19,68 @@ function componentFor(svg: string): React.ComponentType<SVGProps<SVGSVGElement>>
   return Icon
 }
 
-function catalogItemFor(icon: Omit<IconItem, 'component'>): IconItem {
-  const item = icon as IconItem
+type CatalogMetadata = Omit<IconItem, 'component' | 'svg'> & { svgShard: string }
+type CatalogManifest = {
+  version: string
+  count: number
+  metadataFile: string
+  shards: { file: string; source: string; count: number }[]
+}
 
-  // The catalog contains tens of thousands of SVGs. Creating a React component
-  // for every one during startup blocks the main thread for a noticeable time.
-  // Define it lazily instead, and cache it after the first screen that needs it.
-  Object.defineProperty(item, 'component', {
-    configurable: true,
-    enumerable: true,
-    get() {
-      const component = componentFor(item.svg)
-      Object.defineProperty(item, 'component', {
-        configurable: true,
-        enumerable: true,
-        value: component,
-      })
-      return component
-    },
-  })
+const EmptyCatalogIcon: React.ComponentType<SVGProps<SVGSVGElement>> = () => null
 
-  return item
+function catalogItemFor(metadata: CatalogMetadata): IconItem {
+  // Use one placeholder component until the item's shard arrives. Creating a
+  // closure for every catalog entry was expensive at startup (over 63k funcs).
+  return { ...metadata, svg: '', component: EmptyCatalogIcon as IconItem['component'] }
 }
 
 export const ICON_CATALOG: IconItem[] = []
 
 let loadPromise: Promise<void> | null = null
+let catalogManifest: CatalogManifest | null = null
+const iconsById = new Map<string, IconItem>()
+const loadedSvgShards = new Set<string>()
+const svgShardPromises = new Map<string, Promise<void>>()
+
+export function getIconCatalogItems(ids: Iterable<string>) {
+  const items: IconItem[] = []
+  for (const id of ids) {
+    const icon = iconsById.get(id)
+    if (icon) items.push(icon)
+  }
+  return items
+}
+
+async function readCompressedJson<T>(file: string): Promise<T> {
+  const response = await fetch(`/${file}`, { cache: 'force-cache' })
+  if (!response.ok || !response.body) throw new Error(`Icon catalog asset failed (${response.status}): ${file}`)
+  if (response.headers.get('content-encoding')?.includes('gzip')) return await response.json() as T
+  if (!('DecompressionStream' in window)) throw new Error('This browser cannot open the compressed icon catalog')
+  const decompressed = response.body.pipeThrough(new DecompressionStream('gzip'))
+  return await new Response(decompressed).json() as T
+}
+
 export function loadIconCatalog() {
   if (loadPromise) return loadPromise
   const readCatalog = async () => {
     const manifestResponse = await fetch('/icon-catalog-manifest.json', { cache: 'no-cache' })
     if (!manifestResponse.ok) throw new Error(`Icon catalog manifest failed (${manifestResponse.status})`)
-    const manifest = await manifestResponse.json() as {
-      version: string
-      count: number
-      shards: { file: string; count: number }[]
+    catalogManifest = await manifestResponse.json() as CatalogManifest
+    if (!catalogManifest.metadataFile || !Array.isArray(catalogManifest.shards)) {
+      throw new Error('Icon catalog manifest is incomplete')
     }
-    if (!Array.isArray(manifest.shards) || manifest.shards.length === 0) {
-      throw new Error('Icon catalog manifest contains no catalog shards')
+    const metadata = await readCompressedJson<CatalogMetadata[]>(catalogManifest.metadataFile)
+    if (metadata.length !== catalogManifest.count) {
+      throw new Error(`Icon catalog metadata is incomplete (${metadata.length} of ${catalogManifest.count})`)
     }
-    if (!('DecompressionStream' in window)) {
-      throw new Error('This browser cannot open the compressed icon catalog')
-    }
-
-    const readShard = async (file: string) => {
-      const response = await fetch(`/${file}`, { cache: 'force-cache' })
-      if (!response.ok || !response.body) throw new Error(`Icon catalog shard failed (${response.status}): ${file}`)
-
-      // Some static hosts transparently decompress .gz files. Avoid applying
-      // the gzip transform twice when Content-Encoding is already present.
-      if (response.headers.get('content-encoding')?.includes('gzip')) {
-        return await response.json() as Omit<IconItem, 'component'>[]
-      }
-      const decompressed = response.body.pipeThrough(new DecompressionStream('gzip'))
-      return await new Response(decompressed).json() as Omit<IconItem, 'component'>[]
-    }
-
-    // Bound concurrent downloads so the full library loads reliably on mobile
-    // connections while still allowing independent shards to arrive together.
-    const results: Omit<IconItem, 'component'>[][] = new Array(manifest.shards.length)
-    let next = 0
-    const worker = async () => {
-      while (next < manifest.shards.length) {
-        const index = next++
-        results[index] = await readShard(manifest.shards[index].file)
-      }
-    }
-    await Promise.all(Array.from({ length: Math.min(4, manifest.shards.length) }, worker))
-    const icons = results.flat()
-    if (icons.length !== manifest.count) {
-      throw new Error(`Icon catalog is incomplete (${icons.length} of ${manifest.count})`)
-    }
-    return icons
+    return metadata
   }
 
   loadPromise = readCatalog()
-    .then((icons) => {
-      ICON_CATALOG.push(...icons.map(catalogItemFor))
+    .then((metadata) => {
+      ICON_CATALOG.push(...metadata.map(catalogItemFor))
+      ICON_CATALOG.forEach((icon) => iconsById.set(icon.id, icon))
       syncIconPacks(ICON_CATALOG)
     })
     .catch((error) => {
@@ -103,6 +88,38 @@ export function loadIconCatalog() {
       throw error
     })
   return loadPromise
+}
+
+/** Load only the compressed SVG shards required by the supplied icons. */
+export async function loadIconSvgsFor(icons: readonly IconItem[]) {
+  await loadIconCatalog()
+  const needed = new Set<string>()
+  for (const icon of icons) {
+    const shard = icon.svgShard
+    if (shard && !icon.svg && !loadedSvgShards.has(shard)) needed.add(shard)
+  }
+
+  await Promise.all([...needed].map((file) => {
+    const pending = svgShardPromises.get(file)
+    if (pending) return pending
+    const request = readCompressedJson<Record<string, string>>(file)
+      .then((svgById) => {
+        for (const [id, svg] of Object.entries(svgById)) {
+          const icon = iconsById.get(id)
+          if (icon) {
+            icon.svg = svg
+            icon.component = componentFor(svg) as IconItem['component']
+          }
+        }
+        loadedSvgShards.add(file)
+      })
+      .catch((error) => {
+        svgShardPromises.delete(file)
+        throw error
+      })
+    svgShardPromises.set(file, request)
+    return request
+  }))
 }
 
 export function getIconSvg(icon: IconItem, color = 'currentColor', size = 24) {

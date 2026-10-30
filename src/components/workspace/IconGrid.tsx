@@ -4,7 +4,7 @@ import { SearchX, RotateCcw, Check, ChevronDown } from "lucide-react";
 import { IconTile } from "./IconTile";
 import type { IconItem, SortOption, ViewDensity } from "../../types";
 import { cn } from "../../utils/cn";
-import { getIconSvg } from "../../data/iconCatalog";
+import { getIconSvg, loadIconSvgsFor } from "../../data/iconCatalog";
 import { copyToClipboard } from "../../utils/copyToClipboard";
 
 export interface IconGridProps {
@@ -44,12 +44,24 @@ export const IconGrid: React.FC<IconGridProps> = ({
 }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(BATCH_SIZE);
+  const [, setSvgRevision] = useState(0);
   const shouldReduceMotion = useReducedMotion();
 
   // Reset pagination batch when filters or search change
   useEffect(() => {
     setVisibleCount(BATCH_SIZE);
   }, [icons.length, searchQuery]);
+
+  useEffect(() => {
+    if (isLoading) return;
+    const visibleIcons = icons.slice(0, visibleCount);
+    if (!visibleIcons.some((icon) => !icon.svg)) return;
+    let active = true;
+    loadIconSvgsFor(visibleIcons)
+      .then(() => { if (active) setSvgRevision((revision) => revision + 1) })
+      .catch(() => { if (active) setSvgRevision((revision) => revision + 1) });
+    return () => { active = false };
+  }, [icons, visibleCount, isLoading]);
 
   const visibleIcons = icons.slice(0, visibleCount);
   const hasMore = visibleCount < icons.length;

@@ -23,7 +23,7 @@ The app loads the generated catalog manifest and compressed shards from `public/
 npm run catalog:build
 ```
 
-The generator reads the installed upstream icon assets and writes their names, source, style, SPDX license, search tags, and SVG markup. It splits the catalog into versioned compressed shards to keep production requests small, and copies package license files to `public/icon-licenses/`.
+The generator reads the installed upstream icon assets and writes compact searchable metadata plus versioned, source-local compressed SVG shards. The app loads metadata at startup and fetches only the shards needed by visible results, which keeps global search and provider counts available without downloading the full artwork library on every visit. Versioned shard files are cached as immutable assets; the manifest is revalidated so deployments can switch catalog versions safely. The generator also copies package license files to `public/icon-licenses/`.
 
 Included icon packages:
 

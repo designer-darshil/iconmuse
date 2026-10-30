@@ -35,12 +35,27 @@ if (!fs.existsSync(manifestPath)) {
 
 fs.rmSync(outputRoot, { recursive: true, force: true })
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
-const catalog = manifest.shards.flatMap(({ file }) => {
-  const shardPath = path.join(root, 'public', file)
-  if (!fs.existsSync(shardPath)) throw new Error(`Missing catalog shard ${file}. Run npm run catalog:build first.`)
-  return JSON.parse(gunzipSync(fs.readFileSync(shardPath), { maxOutputLength: 8 * 1024 * 1024 }).toString('utf8'))
-})
-if (catalog.length !== manifest.count) throw new Error(`Catalog is incomplete (${catalog.length} of ${manifest.count} icons).`)
+const readCompressedJson = (file) => {
+  const assetPath = path.join(root, 'public', file)
+  if (!fs.existsSync(assetPath)) throw new Error(`Missing catalog asset ${file}. Run npm run catalog:build first.`)
+  return JSON.parse(gunzipSync(fs.readFileSync(assetPath), { maxOutputLength: 32 * 1024 * 1024 }).toString('utf8'))
+}
+const catalog = readCompressedJson(manifest.metadataFile).map((icon) => ({ ...icon, svg: '' }))
+const catalogById = new Map(catalog.map((icon) => [icon.id, icon]))
+let svgCount = 0
+for (const { file } of manifest.shards) {
+  const svgData = readCompressedJson(file)
+  for (const [id, svg] of Object.entries(svgData)) {
+    const icon = catalogById.get(id)
+    if (icon) {
+      icon.svg = svg
+      svgCount++
+    }
+  }
+}
+if (catalog.length !== manifest.count || svgCount !== manifest.count) {
+  throw new Error(`Catalog is incomplete (metadata ${catalog.length}, SVGs ${svgCount}, expected ${manifest.count}).`)
+}
 const metadata = Array.from({ length: metadataShards }, () => [])
 const svgData = Array.from({ length: svgShards }, () => ({}))
 const searchData = new Map()

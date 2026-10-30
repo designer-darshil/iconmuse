@@ -58,7 +58,7 @@ export const FiltersPanel: React.FC<FiltersPanelProps> = ({
 
   return (
     <div className="flex min-h-full flex-col gap-7 bg-white px-5 py-5">
-      <section aria-labelledby="libraries-heading" className="flex flex-col gap-3">
+      <section aria-labelledby="libraries-heading" className="flex flex-col gap-3" aria-busy={libraries.length === 0}>
         <div>
           <h3 id="libraries-heading" className="m-0 text-sm font-semibold text-[#0F1116]">
             {isIllustrationView ? "Illustration providers" : "Icon library providers"}
@@ -66,7 +66,15 @@ export const FiltersPanel: React.FC<FiltersPanelProps> = ({
           <p className="mb-0 mt-1 text-xs leading-relaxed text-[#777780]">Select one or more libraries.</p>
         </div>
         <div className="flex flex-col gap-1">
-          {libraries.map(([source, count]) => {
+          {libraries.length === 0
+            ? Object.keys(SOURCE_MARKS).filter((source) => ILLUSTRATION_SOURCES.has(source) === isIllustrationView).sort().map((source) => (
+              <div key={source} aria-hidden="true" className="flex min-h-11 items-center gap-3 rounded-lg px-2.5">
+                <span className="size-7 shrink-0 animate-pulse rounded-md bg-[var(--surface-strong)]" />
+                <span className="h-3 w-28 animate-pulse rounded bg-[var(--surface-strong)]" />
+                <span className="ml-auto h-3 w-8 animate-pulse rounded bg-[var(--surface-strong)]" />
+              </div>
+            ))
+            : libraries.map(([source, count]) => {
             const selected = selectedSources.includes(source);
             const mark = SOURCE_MARKS[source] ?? { label: source.slice(0, 2), color: "#55555D", bg: "#F3F4F6" };
             return (
