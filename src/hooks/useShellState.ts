@@ -56,6 +56,10 @@ export function useShellState(breakpoint: DeviceBreakpoint) {
     }))
   }, [])
 
+  const setActiveColor = useCallback((color: string) => {
+    setState((prev: ShellState) => ({ ...prev, activeColor: color }))
+  }, [])
+
   return {
     state,
     setActiveRailTab,
@@ -64,5 +68,6 @@ export function useShellState(breakpoint: DeviceBreakpoint) {
     toggleMobileDrawer,
     setMobileDrawerOpen,
     setSelectedIcon,
+    setActiveColor,
   }
 }

@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -287,7 +288,39 @@ for (const record of records) {
   unique.push(record)
 }
 const catalogJson = JSON.stringify(unique)
-fs.writeFileSync(path.join(root, 'public/icon-catalog.json.gz'), gzipSync(catalogJson, { level: 9 }))
+const catalogVersion = createHash('sha256').update(catalogJson).digest('hex').slice(0, 12)
+const catalogDir = path.join(root, 'public')
+const maxShardBytes = 4 * 1024 * 1024
+const shards = []
+let shard = []
+let shardBytes = 2 // JSON array brackets
+const flushShard = () => {
+  if (shard.length === 0) return
+  const file = `icon-catalog-${catalogVersion}-${String(shards.length).padStart(3, '0')}.json.gz`
+  fs.writeFileSync(path.join(catalogDir, file), gzipSync(JSON.stringify(shard), { level: 9 }))
+  shards.push({ file, count: shard.length })
+  shard = []
+  shardBytes = 2
+}
+for (const record of unique) {
+  const bytes = Buffer.byteLength(JSON.stringify(record)) + (shard.length ? 1 : 0)
+  if (shardBytes + bytes > maxShardBytes && shard.length) flushShard()
+  shard.push(record)
+  shardBytes += bytes
+}
+flushShard()
+const manifest = { version: catalogVersion, count: unique.length, shards }
+fs.writeFileSync(path.join(catalogDir, 'icon-catalog-manifest.json'), JSON.stringify(manifest))
+
+// Remove the previous single-file catalog and obsolete shards so production
+// deployments don't ship duplicate 60+ MB catalog files.
+for (const file of fs.readdirSync(catalogDir)) {
+  if (file === 'icon-catalog.json' || file === 'icon-catalog.json.gz') {
+    fs.rmSync(path.join(catalogDir, file), { force: true })
+  } else if (/^icon-catalog-[a-f0-9]{12}-\d{3}\.json\.gz$/.test(file) && !shards.some((entry) => entry.file === file)) {
+    fs.rmSync(path.join(catalogDir, file), { force: true })
+  }
+}
 const licenseDir = path.join(root, 'public/icon-licenses')
 fs.mkdirSync(licenseDir, { recursive: true })
 for (const [packageName, fileName] of [
@@ -321,4 +354,4 @@ for (const [source, target] of [
   ['public/illustrations/bioicons/licenses/bsd.txt', 'bioicons-BSD.txt'],
   ['public/illustrations/ira-design/LICENSE.txt', 'ira-design-MIT.txt'],
 ]) fs.copyFileSync(path.join(root, source), path.join(licenseDir, target))
-console.log(`Wrote ${unique.length} icons to public/icon-catalog.json.gz`)
+console.log(`Wrote ${unique.length} icons across ${shards.length} compressed catalog shards`)

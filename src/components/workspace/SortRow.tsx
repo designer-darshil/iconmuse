@@ -3,6 +3,9 @@ import {
   Grid3X3,
   LayoutGrid,
   Columns2,
+  ArrowDownAZ,
+  ChevronDown,
+  SlidersHorizontal,
   X,
 } from 'lucide-react'
 import type { SortOption, ViewDensity } from '../../types'
@@ -15,6 +18,7 @@ export interface SortRowProps {
   compareCount: number
   onClearCompare?: () => void
   onOpenCompare?: () => void
+  onOpenFilters?: () => void
   viewDensity: ViewDensity
   onChangeViewDensity: (density: ViewDensity) => void
 }
@@ -26,6 +30,7 @@ export const SortRow: React.FC<SortRowProps> = ({
   compareCount,
   onClearCompare,
   onOpenCompare,
+  onOpenFilters,
   viewDensity,
   onChangeViewDensity,
 }) => {
@@ -138,37 +143,34 @@ export const SortRow: React.FC<SortRowProps> = ({
 
       <div className="mobile-sort-controls" aria-label="Result controls">
         <span className="mobile-result-count"><strong>{totalCount.toLocaleString()}</strong> results</span>
-        <label className="sr-only" htmlFor="mobile-sort-select">Sort results</label>
-        <select
-          id="mobile-sort-select"
-          value={activeSort}
-          onChange={(event) => onSelectSort(event.target.value as SortOption)}
-          className="mobile-sort-select"
-        >
-          <option value="all">Default order</option>
-          <option value="name-asc">Name A–Z</option>
-          <option value="name-desc">Name Z–A</option>
-        </select>
-        <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onOpenCompare}
-          disabled={compareCount < 2}
-          aria-label={`Compare ${compareCount} selected icons`}
-          title={compareCount < 2 ? "Select at least two items to compare" : "Compare selected items"}
-          className="mobile-sort-icon-button"
-        >
-          <Columns2 aria-hidden="true" />
-          {compareCount > 0 && <span>{compareCount}</span>}
-        </button>
-        <button
-          type="button"
-          onClick={() => onChangeViewDensity(viewDensity === "normal" ? "compact" : "normal")}
-          aria-label={`Switch to ${viewDensity === "normal" ? "compact" : "spacious"} grid`}
-          className="mobile-sort-icon-button"
-        >
-          {viewDensity === "normal" ? <LayoutGrid aria-hidden="true" /> : <Grid3X3 aria-hidden="true" />}
-        </button>
+        <div className="mobile-sort-select-wrap">
+          <ArrowDownAZ className="mobile-sort-select-icon" aria-hidden="true" />
+          <label className="sr-only" htmlFor="mobile-sort-select">Sort results</label>
+          <select
+            id="mobile-sort-select"
+            value={activeSort}
+            onChange={(event) => onSelectSort(event.target.value as SortOption)}
+            className="mobile-sort-select"
+          >
+            <option value="all">Default</option>
+            <option value="name-asc">Name A–Z</option>
+            <option value="name-desc">Name Z–A</option>
+          </select>
+          <ChevronDown className="mobile-sort-select-chevron" aria-hidden="true" />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button type="button" onClick={onOpenFilters} aria-label="Open filters" className="mobile-sort-filter-button">
+            <SlidersHorizontal aria-hidden="true" />
+            <span>Filters</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onChangeViewDensity(viewDensity === "normal" ? "compact" : "normal")}
+            aria-label={`Switch to ${viewDensity === "normal" ? "compact" : "spacious"} grid`}
+            className="mobile-sort-icon-button"
+          >
+            {viewDensity === "normal" ? <LayoutGrid aria-hidden="true" /> : <Grid3X3 aria-hidden="true" />}
+          </button>
         </div>
       </div>
     </div>

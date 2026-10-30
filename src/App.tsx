@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 // import { AnnouncementStrip } from "./components/layout/AnnouncementStrip";
 import { DesktopHeader } from "./components/layout/DesktopHeader";
 import { LeftNavRail } from "./components/layout/LeftNavRail";
@@ -7,16 +7,16 @@ import { RightSidebar } from "./components/layout/RightSidebar";
 import { MobileTopBar } from "./components/layout/MobileTopBar";
 import { MobileDrawer } from "./components/layout/MobileDrawer";
 import { CompareTray } from "./components/workspace/CompareTray";
-import { CompareModal } from "./components/workspace/CompareModal";
-import { IconDetailModal } from "./components/detail/IconDetailModal";
 import { useBreakpoint } from "./hooks/useBreakpoint";
 import { useShellState } from "./hooks/useShellState";
 import { useIconFilters } from "./hooks/useIconFilters";
 import { ICON_PACKS } from "./data/iconPacks";
-import { downloadIconsZip } from "./utils/downloadIconsZip";
 import type { RightSidebarPanel, IconItem } from "./types";
 import { cn } from "./utils/cn";
 import { AnalyticsConsent } from "./components/common/AnalyticsConsent";
+
+const CompareModal = lazy(() => import("./components/workspace/CompareModal").then((module) => ({ default: module.CompareModal })));
+const IconDetailModal = lazy(() => import("./components/detail/IconDetailModal").then((module) => ({ default: module.IconDetailModal })));
 
 export default function App({ theme, onThemeChange, catalogReady }: { theme: 'light' | 'dark'; onThemeChange: (theme: 'light' | 'dark') => void; catalogReady: boolean }) {
   const { breakpoint, isMobile, isTablet, isDesktop } = useBreakpoint();
@@ -28,6 +28,7 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
     setRightSidebarOpen,
     setMobileDrawerOpen,
     setSelectedIcon,
+    setActiveColor,
   } = useShellState(breakpoint);
 
   const {
@@ -37,12 +38,14 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
     catalogCount,
     sourceCounts,
     licenseCounts,
+    topicCounts,
     savedIconIds,
     collections,
     compareIconIds,
     detailIconId,
     setSearchQuery,
     setCategory,
+    setTopic,
     setSort,
     setIconSize,
     setActivePackId,
@@ -109,7 +112,7 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
   };
 
   const handleDownloadZip = (iconIds: string[]) => {
-    void downloadIconsZip(iconIds);
+    void import("./utils/downloadIconsZip").then(({ downloadIconsZip }) => downloadIconsZip(iconIds));
   };
 
   return (
@@ -166,13 +169,14 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
           isLoading={!catalogReady}
           icons={filteredIcons}
           totalCount={totalCount}
+          onSelectColor={setActiveColor}
           searchQuery={filters.searchQuery}
           onSearchChange={setSearchQuery}
           activeCategory={filters.category}
+          activeTopic={filters.topic}
           onSelectCategory={setCategory}
-          sourceCounts={sourceCounts}
-          selectedSources={filters.selectedSources}
-          onToggleSource={toggleSource}
+          onSelectTopic={setTopic}
+          topicCounts={topicCounts}
           activeSort={filters.sort}
           onSelectSort={setSort}
           activePackId={filters.activePackId}
@@ -189,7 +193,6 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
           isSidebarOpen={state.isRightSidebarOpen}
           breakpoint={breakpoint}
           activeColor={themedActiveColor}
-          isDark={theme === 'dark'}
           onSelectIcon={handleSelectIcon}
           selectedIcon={state.selectedIcon}
         />
@@ -204,8 +207,10 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
             isFloating={isSidebarFloating}
             onToggleFloating={() => setIsSidebarFloating((isFloating) => !isFloating)}
             activePanel={activePanel}
+            activeCategory={filters.category}
             onSelectPanel={setActivePanel}
             activeColor={themedActiveColor}
+            onSelectColor={setActiveColor}
             savedIconIds={savedIconIds}
             onToggleSave={toggleSave}
             onSelectIcon={handleSelectIcon}
@@ -240,8 +245,10 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
           isOverlay={true}
           isMobile={isMobile}
           activePanel={activePanel}
+          activeCategory={filters.category}
           onSelectPanel={setActivePanel}
           activeColor={themedActiveColor}
+          onSelectColor={setActiveColor}
           savedIconIds={savedIconIds}
           onToggleSave={toggleSave}
           onSelectIcon={handleSelectIcon}
@@ -284,26 +291,34 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
       />
 
       {/* Side-by-Side Comparison Preview Modal */}
-      <CompareModal
-        isOpen={isCompareModalOpen}
-        onClose={() => setIsCompareModalOpen(false)}
-        compareIconIds={compareIconIds}
-        activeColor={themedActiveColor}
-      />
+      {isCompareModalOpen && (
+        <Suspense fallback={null}>
+          <CompareModal
+            isOpen={isCompareModalOpen}
+            onClose={() => setIsCompareModalOpen(false)}
+            compareIconIds={compareIconIds}
+            activeColor={themedActiveColor}
+          />
+        </Suspense>
+      )}
 
       {/* Deep-linkable Icon Detail Modal (?icon=<id>) */}
-      <IconDetailModal
-        iconId={detailIconId}
-        onClose={closeDetailIcon}
-        onSelectIcon={openDetailIcon}
-        savedIconIds={savedIconIds}
-        onToggleSave={toggleSave}
-        isDark={theme === 'dark'}
-        onFindSimilar={(cat) => {
-          setCategory(cat);
-          closeDetailIcon();
-        }}
-      />
+      {detailIconId && (
+        <Suspense fallback={null}>
+          <IconDetailModal
+            iconId={detailIconId}
+            onClose={closeDetailIcon}
+            onSelectIcon={openDetailIcon}
+            savedIconIds={savedIconIds}
+            onToggleSave={toggleSave}
+            isDark={theme === 'dark'}
+            onFindSimilar={(cat) => {
+              setCategory(cat);
+              closeDetailIcon();
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

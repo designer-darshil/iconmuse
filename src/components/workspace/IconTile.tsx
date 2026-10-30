@@ -1,38 +1,36 @@
-import React, { useState } from 'react'
-import {
-  Copy,
-  Bookmark,
-  Columns2,
-  Check,
-} from 'lucide-react'
-import type { IconItem } from '../../types'
-import { cn } from '../../utils/cn'
+import React, { useState } from "react";
+import { Copy, Heart, Columns2, Check } from "lucide-react";
+import type { IconItem } from "../../types";
+import { cn } from "../../utils/cn";
 
 function getIllustrationTileSvg(svg: string) {
   return svg.replace(/<svg\b([^>]*)>/i, (_openingTag, attributes: string) => {
-    const cleanAttributes = attributes.replace(/\s(?:width|height)=["'][^"']*["']/gi, '')
-    return `<svg${cleanAttributes} width="80" height="64">`
-  })
+    const cleanAttributes = attributes.replace(
+      /\s(?:width|height)=["'][^"']*["']/gi,
+      "",
+    );
+    return `<svg${cleanAttributes} width="80" height="64">`;
+  });
 }
 
 export interface IconTileProps {
-  icon: IconItem
-  activeColor: string
-  iconSize: number
-  isSaved: boolean
-  isCompared: boolean
-  onToggleSave: (id: string) => void
-  onToggleCompare: (id: string) => void
-  onCopySvg: (icon: IconItem) => void
-  onSelectIcon: (icon: IconItem) => void
-  isSelected: boolean
-  index?: number
+  icon: IconItem;
+  activeColor: string;
+  iconSize?: number;
+  isSaved: boolean;
+  isCompared: boolean;
+  onToggleSave: (id: string) => void;
+  onToggleCompare: (id: string) => void;
+  onCopySvg: (icon: IconItem) => void;
+  onSelectIcon: (icon: IconItem) => void;
+  isSelected: boolean;
+  index?: number;
 }
 
 export const IconTile: React.FC<IconTileProps> = ({
   icon,
   activeColor,
-  iconSize,
+  iconSize = 32,
   isSaved,
   isCompared,
   onToggleSave,
@@ -41,49 +39,68 @@ export const IconTile: React.FC<IconTileProps> = ({
   onSelectIcon,
   isSelected,
 }) => {
-  const [hasCopied, setHasCopied] = useState(false)
-  const IconComponent = icon.component
-  const isIllustration = icon.category === 'Illustrations'
+  const [hasCopied, setHasCopied] = useState(false);
+  const IconComponent = icon.component;
+  const isIllustration = icon.category === "Illustrations";
 
   const handleCopy = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    onCopySvg(icon)
-    setHasCopied(true)
-    setTimeout(() => setHasCopied(false), 1400)
-  }
+    e.stopPropagation();
+    onCopySvg(icon);
+    setHasCopied(true);
+    setTimeout(() => setHasCopied(false), 1400);
+  };
 
   const handleSave = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    onToggleSave(icon.id)
-  }
+    e.stopPropagation();
+    onToggleSave(icon.id);
+  };
 
   const handleCompare = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    onToggleCompare(icon.id)
-  }
+    e.stopPropagation();
+    onToggleCompare(icon.id);
+  };
 
   return (
     <div
       role="button"
       tabIndex={0}
+      data-selected={isSelected}
       onClick={() => onSelectIcon(icon)}
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectIcon(icon)}
+      onKeyDown={(e) =>
+        (e.key === "Enter" || e.key === " ") && onSelectIcon(icon)
+      }
       aria-label={`${icon.name} icon from ${icon.source}`}
       className={cn(
-        'icon-tile group relative flex flex-col items-center justify-between h-[120px] p-2.5 rounded-[14px] cursor-pointer select-none transition-colors duration-150 [content-visibility:auto] [contain-intrinsic-size:120px]',
-        isIllustration && 'is-illustration',
-        // Generous white space: icons float directly on the canvas without boxy card borders
-        'bg-transparent hover:bg-[#F7F7F8]/80 focus-visible:bg-[#F7F7F8]',
-        isSelected && 'bg-[#F7F7F8] ring-1 ring-[#7141E8]/40'
+        "icon-tile group relative flex h-[168px] flex-col items-center rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3 text-[var(--ink)] cursor-pointer select-none transition-colors duration-150 hover:border-[var(--selection)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--selection)] [content-visibility:auto] [contain-intrinsic-size:168px]",
+        isIllustration && "is-illustration",
+        isSelected && "border-[var(--selection)] ring-1 ring-[var(--selection)]",
       )}
     >
+      <div className="flex h-6 w-full items-center justify-end">
+        <button
+          type="button"
+          onClick={handleSave}
+          aria-pressed={isSaved}
+          title={isSaved ? "Remove from Saved" : "Save icon"}
+          aria-label={isSaved ? `Remove ${icon.name} from saved` : `Save ${icon.name}`}
+          className={cn(
+            "inline-flex h-7 w-7 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--surface-strong)] hover:text-[var(--selection)]",
+            isSaved && "text-[var(--selection)]",
+          )}
+        >
+          <Heart className={cn("h-4 w-4", isSaved && "fill-current")} />
+        </button>
+      </div>
+
       {/* Centered Icon Preview */}
-      <div className="icon-tile__preview flex-1 flex items-center justify-center w-full pt-1">
+      <div className="icon-tile__preview flex min-h-0 w-full flex-1 items-center justify-center">
         {isIllustration ? (
           <div
             aria-hidden="true"
             className="flex h-16 w-20 items-center justify-center overflow-hidden transition-transform duration-150 group-hover:scale-[1.03] [&>svg]:block [&>svg]:h-16 [&>svg]:w-20"
-            dangerouslySetInnerHTML={{ __html: getIllustrationTileSvg(icon.svg) }}
+            dangerouslySetInnerHTML={{
+              __html: getIllustrationTileSvg(icon.svg),
+            }}
           />
         ) : (
           <IconComponent
@@ -98,64 +115,56 @@ export const IconTile: React.FC<IconTileProps> = ({
         )}
       </div>
 
-      {/* Ellipsized Name */}
-      <div className="w-full text-center px-1">
-        <p className="icon-tile__name text-[12px] font-medium text-[#0F1116] truncate leading-tight">
+      <div className="w-full px-1 text-center">
+        <p className="icon-tile__name m-0 truncate text-[13px] font-medium leading-tight text-[var(--ink)]">
           {icon.name}
         </p>
       </div>
 
-      {/* Small Neutral Source Pill */}
-      <div className="icon-tile__source mt-1 transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
-        <span className="text-[10px] font-medium text-[#8E8E93] bg-[#F7F7F8] border border-[#E7E7EA] px-2 py-0.5 rounded-full transition-colors group-hover:border-[#D8D8DC]">
+      <div className="mt-2 flex w-full min-w-0 items-center justify-between gap-1">
+        <div className="icon-tile__source min-w-0 flex-1">
+          <span title={icon.source} className="block w-fit max-w-full truncate rounded-full border border-[var(--line)] bg-[var(--surface-strong)] px-2 py-0.5 text-[10px] font-medium text-[var(--muted)]">
           {icon.source}
-        </span>
+          </span>
+        </div>
+
+        <div className="icon-tile__actions flex shrink-0 items-center gap-0.5">
+        <button
+          type="button"
+          onClick={handleCopy}
+          className={cn(
+            "inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--surface-strong)] hover:text-[var(--ink)]",
+            hasCopied && "text-[var(--success)]",
+          )}
+          title="Copy SVG"
+          aria-label={`Copy SVG code for ${icon.name}`}
+        >
+          {hasCopied ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Copy className="h-4 w-4" />
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleCompare}
+          aria-pressed={isCompared}
+          className={cn(
+            "inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--surface-strong)] hover:text-[var(--ink)]",
+            isCompared && "bg-[var(--selection-soft)] text-[var(--selection)]",
+          )}
+          title={isCompared ? "Remove from compare" : "Add to compare"}
+          aria-label={
+            isCompared
+              ? `Remove ${icon.name} from compare`
+              : `Add ${icon.name} to compare`
+          }
+        >
+          <Columns2 className="h-4 w-4" />
+        </button>
       </div>
-
-      {/* Hover Quick-Action Layer: fade in softly with 1px hover lift */}
-      <div className="icon-tile__actions pointer-events-none absolute inset-x-2 bottom-1 z-20 flex translate-y-0.5 items-center justify-center gap-1 rounded-full bg-[#0F1116] p-1 text-white opacity-0 shadow-[0_4px_16px_rgba(15,17,22,0.18)] transition-all duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
-            {/* Copy SVG Action */}
-            <button
-              type="button"
-              onClick={handleCopy}
-              className={cn(
-                'p-1.5 rounded-full hover:bg-white/20 transition-all hover:-translate-y-[1px] active:translate-y-0',
-                hasCopied && 'text-[#2EA45B]'
-              )}
-              title="Copy SVG"
-              aria-label={`Copy SVG code for ${icon.name}`}
-            >
-              {hasCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            </button>
-
-            {/* Save / Favorite Action */}
-            <button
-              type="button"
-              onClick={handleSave}
-              className={cn(
-                'p-1.5 rounded-full hover:bg-white/20 transition-all hover:-translate-y-[1px] active:translate-y-0',
-                isSaved ? 'text-[#B89AFF]' : 'text-white/80'
-              )}
-              title={isSaved ? 'Remove from Saved' : 'Save icon'}
-              aria-label={isSaved ? `Remove ${icon.name} from saved` : `Save ${icon.name}`}
-            >
-              <Bookmark className={cn('w-3.5 h-3.5', isSaved && 'fill-current')} />
-            </button>
-
-            {/* Add to Compare Action */}
-            <button
-              type="button"
-              onClick={handleCompare}
-              className={cn(
-                'p-1.5 rounded-full hover:bg-white/20 transition-all hover:-translate-y-[1px] active:translate-y-0',
-                isCompared ? 'text-[#2EA45B]' : 'text-white/80'
-              )}
-              title={isCompared ? 'Remove from compare' : 'Add to compare'}
-              aria-label={isCompared ? `Remove ${icon.name} from compare` : `Add ${icon.name} to compare`}
-            >
-              <Columns2 className="w-3.5 h-3.5" />
-            </button>
       </div>
     </div>
-  )
-}
+  );
+};

@@ -20,6 +20,7 @@ import { ICON_CATALOG } from "../../data/iconCatalog";
 import type { IconItem } from "../../types";
 import { cn } from "../../utils/cn";
 import { copyToClipboard } from "../../utils/copyToClipboard";
+import { useOverlayScrollLock } from "../../hooks/useOverlayScrollLock";
 
 export interface IconDetailModalProps {
   isDark?: boolean;
@@ -191,6 +192,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
   onFindSimilar,
 }) => {
   const shouldReduceMotion = useReducedMotion();
+  useOverlayScrollLock(Boolean(iconId));
 
   const icon = useMemo(() => {
     if (!iconId) return null;
@@ -519,7 +521,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
     return (
       <AnimatePresence>
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#11121A]/55 p-0 backdrop-blur-sm md:p-5"
+          className="mobile-illustration-overlay fixed inset-0 z-50 flex items-center justify-center bg-[#11121A]/55 p-0 backdrop-blur-sm md:p-5"
           role="dialog"
           aria-modal="true"
           aria-labelledby="illustration-title"
@@ -541,7 +543,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
               duration: shouldReduceMotion ? 0 : 0.18,
               ease: "easeOut",
             }}
-            className="relative flex h-[100dvh] w-full max-w-[1680px] flex-col overflow-hidden bg-white font-sans shadow-2xl md:h-[90vh] md:rounded-[16px] md:border md:border-[#E7E7EA]"
+            className="mobile-illustration-window relative flex h-[100dvh] w-full max-w-[1680px] flex-col overflow-hidden bg-white font-sans shadow-2xl md:h-[90vh] md:rounded-[16px] md:border md:border-[#E7E7EA]"
           >
             <header className="z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-[#E7E7EA] bg-white px-5">
               <nav className="flex min-w-0 items-center gap-1.5 overflow-x-auto text-xs font-medium text-[#8E8E93] no-scrollbar" aria-label="Breadcrumb">
@@ -572,7 +574,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
               </div>
             </header>
 
-            <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_360px] lg:overflow-hidden">
+            <div className="illustration-modal-body grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_360px] lg:overflow-hidden">
               <section
                 className="illustration-preview-section flex min-h-[58dvh] min-w-0 flex-col bg-[#F4F3F6] p-4 sm:p-5 lg:min-h-0"
                 aria-label="Illustration preview"
@@ -604,7 +606,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                 </div>
               </section>
 
-              <aside className="flex flex-col gap-5 border-t border-[#E7E7EA] bg-white p-5 font-sans lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
+              <aside className="illustration-detail-controls flex flex-col gap-5 border-t border-[#E7E7EA] bg-white p-5 font-sans lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
                 <section className="space-y-3">
                   <div>
                     <h2 className="m-0 text-sm font-semibold text-[#0F1116]">
@@ -777,7 +779,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                   </div>
                 </section>
 
-                <section className="space-y-3 border-t border-[#ECEAEF] pt-5">
+                <section className="illustration-export-section space-y-3 border-t border-[#ECEAEF] pt-5">
                   <h2 className="m-0 text-sm font-semibold text-[#0F1116]">
                     Export
                   </h2>
@@ -866,6 +868,16 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                 )}
               </aside>
             </div>
+            <div className="mobile-detail-actionbar" aria-label="Artwork actions">
+              <button type="button" onClick={handleCopySvg} className="mobile-detail-action-secondary">
+                {hasCopiedSvg ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+                <span>{hasCopiedSvg ? "Copied" : "Copy SVG"}</span>
+              </button>
+              <button type="button" onClick={handleDownloadSvg} className="mobile-detail-action-primary">
+                <Download aria-hidden="true" />
+                <span>Download SVG</span>
+              </button>
+            </div>
           </motion.div>
           {toastMessage && (
             <div
@@ -883,7 +895,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
   return (
     <AnimatePresence>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-6 lg:p-8 select-none"
+        className="mobile-icon-detail-overlay fixed inset-0 z-50 flex items-center justify-center p-0 md:p-6 lg:p-8 select-none"
         role="dialog"
         aria-modal="true"
         aria-labelledby="icon-detail-title"
@@ -916,7 +928,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
             duration: shouldReduceMotion ? 0 : 0.18,
             ease: "easeOut",
           }}
-          className="relative z-10 w-full max-w-[1680px] h-[100dvh] md:h-[90vh] bg-white md:rounded-[16px] shadow-2xl border border-[#E7E7EA] overflow-hidden flex flex-col"
+          className="mobile-icon-detail-window relative z-10 w-full max-w-[1680px] h-[100dvh] md:h-[90vh] bg-white md:rounded-[16px] shadow-2xl border border-[#E7E7EA] overflow-hidden flex flex-col"
         >
           {/* Top Bar for Mobile & Desktop Close */}
           <div className="h-14 px-5 border-b border-[#E7E7EA] flex items-center justify-between bg-white shrink-0 sticky top-0 z-30">
@@ -961,9 +973,9 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
           </div>
 
           {/* Body Layout: 3 Columns on Desktop >= 1280px, Stacked on Tablet & Mobile */}
-          <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden grid grid-cols-1 lg:grid-cols-[360px_1fr_360px] xl:grid-cols-[380px_1fr_380px]">
+          <div className="mobile-icon-detail-body flex-1 min-h-0 overflow-y-auto lg:overflow-hidden grid grid-cols-1 lg:grid-cols-[360px_1fr_360px] xl:grid-cols-[380px_1fr_380px]">
             {/* -------------------- 1. LEFT PANEL: CUSTOMIZATION -------------------- */}
-            <div className="order-2 lg:order-none border-b lg:border-b-0 lg:border-r border-[#E7E7EA] bg-white overflow-visible lg:overflow-y-auto p-4 sm:p-5 flex flex-col gap-5">
+            <div className="mobile-icon-customize-panel order-3 lg:order-none border-b lg:border-b-0 lg:border-r border-[#E7E7EA] bg-white overflow-visible lg:overflow-y-auto p-4 sm:p-5 flex flex-col gap-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F1116] m-0">
                   {isIllustration
@@ -1332,14 +1344,14 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
             </div>
 
             {/* -------------------- 2. CENTRAL PANEL: PREVIEW & SIMILAR -------------------- */}
-            <div className="order-1 lg:order-none min-w-0 overflow-visible lg:overflow-y-auto p-3 sm:p-6 md:p-8 flex flex-col items-center bg-[#FAFAFA]">
+            <div className="mobile-icon-preview-panel order-1 lg:order-none min-w-0 overflow-visible lg:overflow-y-auto p-3 sm:p-6 md:p-8 flex flex-col items-center bg-[#FAFAFA]">
               {/* Large Preview Stage using CSS Grid-Paper Background */}
               <div
                 className={cn(
                   "relative flex border border-[#E7E7EA] shadow-xs",
                   isIllustration
                     ? "w-full max-w-none h-[62dvh] min-h-[360px] max-h-[900px] items-start justify-start overflow-auto rounded-xl"
-                    : "w-full max-w-xl h-[min(42dvh,360px)] min-h-[230px] md:h-auto md:aspect-4/3 items-center justify-center overflow-hidden rounded-[16px] md:rounded-[20px]",
+                    : "mobile-icon-preview-stage w-full max-w-xl h-[min(42dvh,360px)] min-h-[230px] md:h-auto md:aspect-4/3 items-center justify-center overflow-hidden rounded-[16px] md:rounded-[20px]",
                 )}
                 style={{
                   backgroundColor: isDark ? "#191B22" : "#FFFFFF",
@@ -1547,7 +1559,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
             </div>
 
             {/* -------------------- 3. RIGHT PANEL: EXPORT & CODE -------------------- */}
-            <div className="order-3 lg:order-none border-t lg:border-t-0 lg:border-l border-[#E7E7EA] bg-white overflow-visible lg:overflow-y-auto p-4 sm:p-5 flex flex-col gap-5">
+            <div className="mobile-icon-export-panel order-2 lg:order-none border-t lg:border-t-0 lg:border-l border-[#E7E7EA] bg-white overflow-visible lg:overflow-y-auto p-4 sm:p-5 flex flex-col gap-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F1116] m-0">
                   Export Settings
@@ -1754,6 +1766,20 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                 </p>
               </div>
             </div>
+          </div>
+          <div className="mobile-detail-actionbar" aria-label="Icon actions">
+            <button type="button" onClick={() => onToggleSave(icon.id)} className="mobile-detail-action-secondary">
+              <Bookmark aria-hidden="true" />
+              <span>{isSaved ? "Saved" : "Save"}</span>
+            </button>
+            <button type="button" onClick={handleCopySvg} className="mobile-detail-action-secondary">
+              {hasCopiedSvg ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+              <span>{hasCopiedSvg ? "Copied" : "Copy SVG"}</span>
+            </button>
+            <button type="button" onClick={handleDownloadSvg} className="mobile-detail-action-primary">
+              <Download aria-hidden="true" />
+              <span>Download SVG</span>
+            </button>
           </div>
         </motion.div>
 

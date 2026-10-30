@@ -6,10 +6,10 @@ import { BrandLogo } from "../common/BrandLogo";
 import { useOverlayScrollLock } from "../../hooks/useOverlayScrollLock";
 
 const destinations = [
-  { id: "discover", title: "Discover", detail: "Browse icons and illustrations" },
+  { id: "discover", title: "Browse", detail: "Find icons and illustrations" },
   { id: "collections", title: "Packs", detail: "Explore curated collections" },
-  { id: "saved", title: "Saved", detail: "Return to your saved items" },
-  { id: "extensions", title: "Icon libraries", detail: "Browse the source catalogs" },
+  { id: "saved", title: "Saved", detail: "Your saved icons" },
+  { id: "extensions", title: "Libraries", detail: "Browse icon providers" },
   { id: "help", title: "Help & docs", detail: "Learn your way around IconMuse" },
 ];
 
@@ -84,7 +84,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#E7E7EA] px-4">
               <a href="/" aria-label="IconMuse home" className="flex items-center gap-2.5 no-underline">
                 <BrandLogo className="h-7 w-7 object-contain" />
-              <span className="text-base font-bold tracking-tight text-[#0F1116]">Menu</span>
+                <span className="text-base font-bold tracking-tight text-[#0F1116]">Menu</span>
               </a>
               <button
                 type="button"
@@ -96,30 +96,27 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
               </button>
             </header>
 
-            <div className="flex flex-col px-4 pb-3 pt-2">
+            <nav aria-label="Main menu" className="flex flex-col px-4 pb-3 pt-4">
+              <p className="mb-2 px-1 text-xs font-semibold text-[#777780]">Your workspace</p>
               {destinations.map(({ id, title, detail }) => {
                 const selected = activeNavId === id;
                 return (
-                  <React.Fragment key={id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSelectNav(id);
-                        onClose();
-                      }}
-                      aria-current={selected ? "page" : undefined}
-                      className={`flex min-h-[60px] items-center justify-between border-0 border-b border-[#E7E7EA] bg-transparent px-1 text-left transition-colors last:border-b-0 ${selected ? "text-[#7141E8]" : "text-[#0F1116] hover:text-[#7141E8]"}`}
-                    >
-                      <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className="text-[15px] font-semibold">{title}</span>
-                        <span className="truncate text-xs text-[#6B6B73]">{detail}</span>
-                      </span>
-                      {selected && <span className="mr-1 h-1.5 w-1.5 rounded-full bg-[#7141E8]" aria-label="Current page" />}
-                    </button>
-                  </React.Fragment>
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => { onSelectNav(id); onClose(); }}
+                    aria-current={selected ? "page" : undefined}
+                    className={`mobile-nav-destination flex min-h-[60px] items-center justify-between rounded-xl border-0 px-3 text-left transition-colors ${selected ? "is-active text-[#7141E8]" : "text-[#0F1116] hover:text-[#7141E8]"}`}
+                  >
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="text-[15px] font-semibold">{title}</span>
+                      <span className="truncate text-xs text-[#6B6B73]">{detail}</span>
+                    </span>
+                    {selected && <span className="mr-1 h-1.5 w-1.5 rounded-full bg-[#7141E8]" aria-label="Current page" />}
+                  </button>
                 );
               })}
-            </div>
+            </nav>
 
             <footer className="mt-auto flex items-center justify-end border-t border-[#E7E7EA] px-4 py-3 text-xs text-[#6B6B73]">
               <a href="https://github.com" target="_blank" rel="noreferrer" className="flex min-h-[44px] items-center gap-2 hover:text-[#0F1116]">

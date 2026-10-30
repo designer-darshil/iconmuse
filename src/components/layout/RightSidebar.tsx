@@ -1,4 +1,4 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   X,
@@ -8,13 +8,20 @@ import {
   Bookmark,
 } from "lucide-react";
 import { FiltersPanel } from "../sidebar/FiltersPanel";
-import { PacksPanel } from "../sidebar/PacksPanel";
-import { SavedPanel } from "../sidebar/SavedPanel";
-import { ExtensionsPanel } from "../sidebar/ExtensionsPanel";
-import { HelpPanel } from "../sidebar/HelpPanel";
 import type { RightSidebarProps, RightSidebarPanel } from "../../types";
 import { cn } from "../../utils/cn";
 import { useOverlayScrollLock } from "../../hooks/useOverlayScrollLock";
+
+const PacksPanel = lazy(() => import("../sidebar/PacksPanel").then((module) => ({ default: module.PacksPanel })));
+const SavedPanel = lazy(() => import("../sidebar/SavedPanel").then((module) => ({ default: module.SavedPanel })));
+const ExtensionsPanel = lazy(() => import("../sidebar/ExtensionsPanel").then((module) => ({ default: module.ExtensionsPanel })));
+const HelpPanel = lazy(() => import("../sidebar/HelpPanel").then((module) => ({ default: module.HelpPanel })));
+
+const PanelLoading = () => (
+  <div className="flex min-h-40 items-center justify-center text-sm text-[var(--muted)]" role="status">
+    Loading section…
+  </div>
+);
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({
   isOpen,
@@ -24,8 +31,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   isFloating = false,
   onToggleFloating,
   activePanel,
+  activeCategory,
   onSelectPanel,
   activeColor = "#0F1116",
+  onSelectColor,
   savedIconIds,
   onToggleSave,
   onSelectIcon,
@@ -73,28 +82,39 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             onChangeIconSize={onChangeIconSize}
             onResetFilters={onResetFilters}
             licenseCounts={licenseCounts}
+            sourceCounts={sourceCounts}
+            selectedSources={selectedSources}
+            onToggleSource={onToggleSource}
+            activeCategory={activeCategory}
+            activeColor={activeColor}
+            onSelectColor={onSelectColor}
           />
         );
       case "extensions":
         return (
+          <Suspense fallback={<PanelLoading />}>
           <ExtensionsPanel
             sourceCounts={sourceCounts}
             selectedSources={selectedSources}
             onToggleSource={onToggleSource}
           />
+          </Suspense>
         );
       case "help":
-        return <HelpPanel />;
+        return <Suspense fallback={<PanelLoading />}><HelpPanel /></Suspense>;
       case "packs":
         return (
+          <Suspense fallback={<PanelLoading />}>
           <PacksPanel
             activePackId={activePackId}
             onSelectPack={onSelectPack}
             packs={packs}
           />
+          </Suspense>
         );
       case "saved":
         return (
+          <Suspense fallback={<PanelLoading />}>
           <SavedPanel
             savedIconIds={savedIconIds}
             onToggleSave={onToggleSave}
@@ -106,6 +126,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             onToggleCollectionIcon={onToggleCollectionIcon}
             onDownloadZip={onDownloadZip}
           />
+          </Suspense>
         );
       default:
         return null;
@@ -151,7 +172,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   );
 
   const sectionTabs = (
-    <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#E7E7EA] bg-[#F7F7F8] shrink-0">
+    <div className="mobile-sidebar-section-tabs flex items-center justify-between px-3 py-1.5 border-b border-[#E7E7EA] bg-[#F7F7F8] shrink-0">
       {[
         {
           id: "filters" as RightSidebarPanel,
@@ -173,9 +194,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
           <button
             key={tab.id}
             type="button"
+            aria-pressed={isActive}
             onClick={() => onSelectPanel(tab.id)}
             className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all hover:-translate-y-px active:translate-y-0",
+              "mobile-sidebar-tab flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all hover:-translate-y-px active:translate-y-0",
               isActive
                 ? "bg-white text-[#0F1116] shadow-xs"
                 : "text-[#8E8E93] hover:text-[#0F1116]",
@@ -183,6 +205,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
           >
             <Icon
               className={cn(
+                "mobile-sidebar-tab-icon",
                 "w-3 h-3",
                 isActive ? "text-[#7141E8]" : "text-[#8E8E93]",
               )}
@@ -239,10 +262,11 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
               {sidebarHeader}
               {sectionTabs}
 
-              <div className="flex-1 overflow-y-auto">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activePanel}
+                    className="min-h-full"
                     variants={slideVariants}
                     initial="initial"
                     animate="animate"
@@ -275,10 +299,11 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       {sidebarHeader}
       {sectionTabs}
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <AnimatePresence mode="wait">
           <motion.div
             key={activePanel}
+            className="min-h-full"
             variants={slideVariants}
             initial="initial"
             animate="animate"

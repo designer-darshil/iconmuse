@@ -1,48 +1,48 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0f1116;
-  --card: #ffffff;
-  --card-foreground: #0f1116;
-  --popover: #ffffff;
-  --popover-foreground: #0f1116;
-  --primary: #7141e8;
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: var(--canvas);
+  --card-foreground: var(--ink);
+  --popover: var(--canvas);
+  --popover-foreground: var(--ink);
+  --primary: var(--violet);
   --primary-foreground: #ffffff;
-  --secondary: #f7f7f8;
-  --secondary-foreground: #0f1116;
-  --muted: #f7f7f8;
-  --muted-foreground: #777780;
-  --accent: #f1effa;
-  --accent-foreground: #5630bd;
-  --destructive: #dc2626;
+  --secondary: var(--surface);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface);
+  --muted-foreground: #52525B;
+  --accent: var(--selection-soft);
+  --accent-foreground: var(--accent-text);
+  --destructive: var(--danger);
   --destructive-foreground: #ffffff;
-  --border: #e7e7ea;
-  --input: #e7e7ea;
-  --ring: #7141e8;
+  --border: var(--line);
+  --input: var(--control-line);
+  --ring: var(--selection);
   --radius: 0.625rem;
 }
 
 html.dark {
-  --background: #111318;
-  --foreground: #F4F4F5;
-  --card: #191B22;
-  --card-foreground: #F4F4F5;
-  --popover: #191B22;
-  --popover-foreground: #F4F4F5;
-  --primary: #B99AFF;
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--violet);
   --primary-foreground: #171220;
-  --secondary: #22252E;
-  --secondary-foreground: #F4F4F5;
-  --muted: #22252E;
-  --muted-foreground: #B6B6C2;
-  --accent: #302844;
-  --accent-foreground: #D6C4FF;
-  --destructive: #FFAAAA;
+  --secondary: var(--surface-strong);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-strong);
+  --muted-foreground: var(--muted);
+  --accent: var(--selection-soft);
+  --accent-foreground: var(--accent-text);
+  --destructive: var(--danger);
   --destructive-foreground: #1C1010;
-  --border: #747985;
-  --input: #747985;
-  --ring: #B99AFF;
+  --border: var(--line);
+  --input: var(--control-line);
+  --ring: var(--selection);
 }
 
 @theme inline {
@@ -73,5 +73,5 @@ html.dark {
 
 @theme {
   --breakpoint-xs: 480px;
-  --font-sans: 'General Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: var(--font-ui);
 }

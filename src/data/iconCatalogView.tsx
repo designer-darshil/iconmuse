@@ -48,23 +48,49 @@ let loadPromise: Promise<void> | null = null
 export function loadIconCatalog() {
   if (loadPromise) return loadPromise
   const readCatalog = async () => {
-    // Catalog SVG markup compresses very well (213 MB is about 31 MB gzipped).
-    // Fetch the pre-compressed asset to avoid making every visit transfer the
-    // full source JSON. Keep a plain JSON fallback for older browsers/hosts.
-    if ('DecompressionStream' in window) {
-      try {
-        const response = await fetch('/icon-catalog.json.gz')
-        if (response.ok && response.body) {
-          const decompressed = response.body.pipeThrough(new DecompressionStream('gzip'))
-          return await new Response(decompressed).json() as Omit<IconItem, 'component'>[]
-        }
-      } catch {
-        // Fall through to the uncompressed asset if pre-compression is absent.
+    const manifestResponse = await fetch('/icon-catalog-manifest.json', { cache: 'no-cache' })
+    if (!manifestResponse.ok) throw new Error(`Icon catalog manifest failed (${manifestResponse.status})`)
+    const manifest = await manifestResponse.json() as {
+      version: string
+      count: number
+      shards: { file: string; count: number }[]
+    }
+    if (!Array.isArray(manifest.shards) || manifest.shards.length === 0) {
+      throw new Error('Icon catalog manifest contains no catalog shards')
+    }
+    if (!('DecompressionStream' in window)) {
+      throw new Error('This browser cannot open the compressed icon catalog')
+    }
+
+    const readShard = async (file: string) => {
+      const response = await fetch(`/${file}`, { cache: 'force-cache' })
+      if (!response.ok || !response.body) throw new Error(`Icon catalog shard failed (${response.status}): ${file}`)
+
+      // Some static hosts transparently decompress .gz files. Avoid applying
+      // the gzip transform twice when Content-Encoding is already present.
+      if (response.headers.get('content-encoding')?.includes('gzip')) {
+        return await response.json() as Omit<IconItem, 'component'>[]
+      }
+      const decompressed = response.body.pipeThrough(new DecompressionStream('gzip'))
+      return await new Response(decompressed).json() as Omit<IconItem, 'component'>[]
+    }
+
+    // Bound concurrent downloads so the full library loads reliably on mobile
+    // connections while still allowing independent shards to arrive together.
+    const results: Omit<IconItem, 'component'>[][] = new Array(manifest.shards.length)
+    let next = 0
+    const worker = async () => {
+      while (next < manifest.shards.length) {
+        const index = next++
+        results[index] = await readShard(manifest.shards[index].file)
       }
     }
-    const response = await fetch('/icon-catalog.json')
-    if (!response.ok) throw new Error(`Icon catalog load failed (${response.status})`)
-    return await response.json() as Omit<IconItem, 'component'>[]
+    await Promise.all(Array.from({ length: Math.min(4, manifest.shards.length) }, worker))
+    const icons = results.flat()
+    if (icons.length !== manifest.count) {
+      throw new Error(`Icon catalog is incomplete (${icons.length} of ${manifest.count})`)
+    }
+    return icons
   }
 
   loadPromise = readCatalog()

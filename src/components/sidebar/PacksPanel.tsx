@@ -53,6 +53,7 @@ export const PacksPanel: React.FC<PacksPanelProps> = ({
               key={pack.id}
               role="button"
               tabIndex={0}
+              aria-pressed={isActive}
               onClick={() => onSelectPack(isActive ? null : pack.id)}
               onKeyDown={(e) =>
                 e.key === "Enter" && onSelectPack(isActive ? null : pack.id)

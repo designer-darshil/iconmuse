@@ -32,7 +32,7 @@ export const IconGrid: React.FC<IconGridProps> = ({
   isLoading = false,
   searchQuery,
   activeColor,
-  iconSize = 24,
+  iconSize = 32,
   savedIconIds,
   compareIconIds,
   onToggleSave,
@@ -60,7 +60,9 @@ export const IconGrid: React.FC<IconGridProps> = ({
       await copyToClipboard(svgCode);
       setToastMessage(`Copied SVG: ${icon.name}`);
     } catch {
-      setToastMessage("Could not copy SVG. Check clipboard permissions and try again.");
+      setToastMessage(
+        "Could not copy SVG. Check clipboard permissions and try again.",
+      );
     }
     setTimeout(() => {
       setToastMessage(null);
@@ -74,18 +76,19 @@ export const IconGrid: React.FC<IconGridProps> = ({
         className={cn(
           "w-full p-4 md:p-6 grid gap-3",
           viewDensity === "normal"
-            ? "grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8"
+            ? "grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
             : "grid-cols-3 xs:grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10",
         )}
       >
         {Array.from({ length: 24 }).map((_, i) => (
           <div
             key={i}
-            className="h-[120px] flex flex-col items-center justify-between p-3 rounded-[14px] bg-[#F7F7F8]/50 animate-pulse"
+            className="flex h-[168px] flex-col items-center justify-between rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3 animate-pulse"
           >
-            <div className="w-8 h-8 rounded-full bg-[#E7E7EA] mt-2" />
-            <div className="w-16 h-3 rounded bg-[#E7E7EA]" />
-            <div className="w-10 h-3 rounded-full bg-[#E7E7EA]" />
+            <div className="flex w-full justify-end"><div className="h-7 w-7 rounded-full bg-[var(--surface-strong)]" /></div>
+            <div className="h-8 w-8 rounded-md bg-[var(--surface-strong)]" />
+            <div className="h-3 w-16 rounded bg-[var(--surface-strong)]" />
+            <div className="flex w-full items-center justify-between"><div className="h-5 w-12 rounded-full bg-[var(--surface-strong)]" /><div className="h-6 w-14 rounded-md bg-[var(--surface-strong)]" /></div>
           </div>
         ))}
       </div>
@@ -129,13 +132,16 @@ export const IconGrid: React.FC<IconGridProps> = ({
           initial={shouldReduceMotion ? false : { opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
           exit={shouldReduceMotion ? undefined : { opacity: 0, y: -3 }}
-          transition={{ duration: shouldReduceMotion ? 0 : 0.14, ease: "easeOut" }}
+          transition={{
+            duration: shouldReduceMotion ? 0 : 0.14,
+            ease: "easeOut",
+          }}
         >
           <div
             className={cn(
               "grid gap-x-3 gap-y-4",
               viewDensity === "normal"
-                ? "grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8"
+                ? "grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
                 : "grid-cols-3 xs:grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10",
             )}
           >
@@ -177,17 +183,17 @@ export const IconGrid: React.FC<IconGridProps> = ({
 
       {/* Toast Feedback */}
       {toastMessage && (
-          <div
-            className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#0F1116] text-white text-xs font-semibold shadow-2xl border border-white/10"
-            role="status"
-            aria-live="polite"
-          >
-            <div className="w-4 h-4 rounded-full bg-[#2EA45B] flex items-center justify-center text-white shrink-0">
-              <Check className="w-2.5 h-2.5 stroke-[3]" />
-            </div>
-            <span>{toastMessage}</span>
+        <div
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#0F1116] text-white text-xs font-semibold shadow-2xl border border-white/10"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="w-4 h-4 rounded-full bg-[#2EA45B] flex items-center justify-center text-white shrink-0">
+            <Check className="w-2.5 h-2.5 stroke-[3]" />
           </div>
-        )}
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 };

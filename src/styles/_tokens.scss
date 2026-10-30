@@ -1,29 +1,40 @@
 :root {
-  /* Core brand & surface palette */
+  /* IconMuse foundation: warm white surfaces with a confident violet accent. */
   --ink: #0F1116;
   --canvas: #FFFFFF;
   --surface: #F7F7F8;
   --surface-strong: #F1F1F3;
   --line: #E7E7EA;
-  --muted: #8E8E93;
+  --muted: #52525B;
+  --control-line: #8A8A94;
+  --violet: #7141E8;
+  --violet-hover: #6031D4;
+  --accent-text: #5932C0;
+  --selection: #7141E8;
+  --selection-soft: #F3F0FC;
+  --success: #18794E;
+  --danger: #B42332;
   --success-subtle: #DCFCE7;
   --info-subtle: #E0F2FE;
   --warning-subtle: #FEF08A;
   --danger-subtle: #FFF5F5;
-  --violet: #7141E8;
 
-  /* Border radiuses */
+  /* Type hierarchy */
+  --font-ui: 'General Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.125rem;
+  --tracking-tight: -0.025em;
+
+  /* Shared shape, depth, and workspace dimensions */
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 20px;
   --radius-pill: 9999px;
-
-  /* Shadows */
-  --shadow-float: 0 8px 26px rgba(15, 17, 22, 0.09);
+  --shadow-float: 0 10px 30px rgba(15, 17, 22, 0.10);
   --shadow-subtle: 0 1px 3px rgba(15, 17, 22, 0.05);
-  --shadow-panel: 0 12px 32px rgba(15, 17, 22, 0.12);
-
-  /* Layout dimensions */
+  --shadow-panel: 0 14px 36px rgba(15, 17, 22, 0.14);
   --announcement-height: 0px;
   --header-height: 64px;
   --rail-width: 72px;
@@ -33,20 +44,24 @@
 html.dark {
   color-scheme: dark;
   --ink: #F4F4F5;
-  --canvas: #111318;
-  --surface: #191B22;
-  --surface-strong: #22252E;
-  --line: #747985;
+  --canvas: #141519;
+  --surface: #1C1D22;
+  --surface-strong: #25262C;
+  --line: #34353a;
   --muted: #B6B6C2;
-  --success: #65D996;
-  --danger: #FFAAAA;
+  --control-line: #747985;
+  --violet: #B99AFF;
+  --violet-hover: #C9B2FF;
+  --accent-text: #E0D4FF;
+  --selection: #B99AFF;
+  --selection-soft: #49396A;
+  --success: #72D9A0;
+  --danger: #FF9FA8;
   --success-subtle: #1B3828;
   --info-subtle: #1D3543;
   --warning-subtle: #41351C;
   --danger-subtle: #3A2426;
-  --violet: #B99AFF;
-  --accent-text: #C5AEFF;
-  --shadow-float: 0 8px 26px rgba(0, 0, 0, 0.35);
-  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.25);
-  --shadow-panel: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.38);
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.28);
+  --shadow-panel: 0 14px 36px rgba(0, 0, 0, 0.48);
 }

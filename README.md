@@ -17,13 +17,13 @@ Create a production build with `npm run build` and preview it with `npm run prev
 
 ## Icon catalog
 
-The app loads `public/icon-catalog.json` at startup. Rebuild it from the pinned package versions in `package-lock.json` with:
+The app loads the generated catalog manifest and compressed shards from `public/`. Rebuild them from the pinned package versions in `package-lock.json` with:
 
 ```sh
 npm run catalog:build
 ```
 
-The generator reads the installed upstream icon assets and writes their names, source, style, SPDX license, search tags, and SVG markup. It also copies package license files to `public/icon-licenses/`.
+The generator reads the installed upstream icon assets and writes their names, source, style, SPDX license, search tags, and SVG markup. It splits the catalog into versioned compressed shards to keep production requests small, and copies package license files to `public/icon-licenses/`.
 
 Included icon packages:
 

@@ -175,6 +175,7 @@ export const SavedPanel: React.FC<SavedPanelProps> = ({
       <div className="flex flex-col gap-1.5">
         <button
           type="button"
+          aria-pressed={!activeCollectionId}
           onClick={() => setActiveCollectionId(null)}
           className={cn(
             "flex items-center justify-between px-3 py-2 rounded-lg text-xs text-left",
@@ -192,6 +193,7 @@ export const SavedPanel: React.FC<SavedPanelProps> = ({
         {collections.map((collection) => (
           <div
             key={collection.id}
+            data-selected={activeCollectionId === collection.id}
             className={cn(
               "flex items-center rounded-lg",
               activeCollectionId === collection.id
@@ -201,6 +203,7 @@ export const SavedPanel: React.FC<SavedPanelProps> = ({
           >
             <button
               type="button"
+              aria-pressed={activeCollectionId === collection.id}
               onClick={() => setActiveCollectionId(collection.id)}
               className={cn(
                 "min-w-0 flex-1 flex items-center justify-between px-3 py-2 text-xs text-left",
@@ -319,6 +322,7 @@ export const SavedPanel: React.FC<SavedPanelProps> = ({
                         ? `Remove ${icon.name} from ${activeCollection.name}`
                         : `Add ${icon.name} to ${activeCollection.name}`
                     }
+                    aria-pressed={isInCollection}
                     className={cn(
                       "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
                       isInCollection

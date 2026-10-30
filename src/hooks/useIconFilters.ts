@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { ICON_CATALOG } from '../data/iconCatalog'
 import { ICON_PACKS } from '../data/iconPacks'
 import { searchIcons } from '../utils/iconSearch'
+import { getIconTopicCounts, ICON_TOPICS } from '../data/iconTopics'
 import type { IconCollection, IconFilterState, SortOption } from '../types'
 
 const LOCAL_STORAGE_SAVED_KEY = 'iconmuse_saved_icons'
@@ -13,11 +14,12 @@ export function useIconFilters(catalogReady = true) {
     if (typeof window === 'undefined') {
       return {
         category: 'all',
+        topic: null,
         searchQuery: '',
         selectedSources: [],
         selectedStyles: [],
         selectedLicenses: [],
-        iconSize: 24,
+        iconSize: 32,
         sort: 'all',
         activePackId: null,
       }
@@ -26,6 +28,7 @@ export function useIconFilters(catalogReady = true) {
     const params = new URLSearchParams(window.location.search)
     const q = params.get('q') || ''
     const category = params.get('category') || 'all'
+    const topic = params.get('topic') || null
     const sort = (params.get('sort') as SortOption) || 'all'
     const sourcesParam = params.get('sources')
     const selectedSources = sourcesParam ? sourcesParam.split(',').filter(Boolean) : []
@@ -33,11 +36,12 @@ export function useIconFilters(catalogReady = true) {
 
     return {
       category,
+      topic,
       searchQuery: q,
       selectedSources,
       selectedStyles: [],
       selectedLicenses: [],
-      iconSize: 24,
+      iconSize: 32,
       sort,
       activePackId: pack,
     }
@@ -109,6 +113,7 @@ export function useIconFilters(catalogReady = true) {
       // Also sync filters on popstate if needed
       const q = params.get('q') || ''
       const category = params.get('category') || 'all'
+      const topic = params.get('topic') || null
       const sort = (params.get('sort') as SortOption) || 'all'
       const sourcesParam = params.get('sources')
       const selectedSources = sourcesParam ? sourcesParam.split(',').filter(Boolean) : []
@@ -118,6 +123,7 @@ export function useIconFilters(catalogReady = true) {
         ...prev,
         searchQuery: q,
         category,
+        topic,
         sort,
         selectedSources,
         activePackId: pack,
@@ -139,6 +145,7 @@ export function useIconFilters(catalogReady = true) {
     if (filters.category && filters.category !== 'all') {
       params.set('category', filters.category)
     }
+    if (filters.topic) params.set('topic', filters.topic)
     if (filters.sort && filters.sort !== 'all') {
       params.set('sort', filters.sort)
     }
@@ -165,7 +172,7 @@ export function useIconFilters(catalogReady = true) {
     }
 
     window.history.replaceState({}, '', newUrl)
-  }, [filters.searchQuery, filters.category, filters.sort, filters.selectedSources, filters.activePackId, detailIconId])
+  }, [filters.searchQuery, filters.category, filters.topic, filters.sort, filters.selectedSources, filters.activePackId, detailIconId])
 
   // Open and close detail modal
   const openDetailIcon = useCallback((id: string) => {
@@ -232,7 +239,17 @@ export function useIconFilters(catalogReady = true) {
   }, [])
 
   const setCategory = useCallback((category: string) => {
-    setFilters((prev) => ({ ...prev, category, activePackId: null }))
+    setFilters((prev) => ({
+      ...prev,
+      category,
+      topic: null,
+      selectedSources: [],
+      activePackId: null,
+    }))
+  }, [])
+
+  const setTopic = useCallback((topic: string | null) => {
+    setFilters((prev) => ({ ...prev, topic, category: 'all', activePackId: null }))
   }, [])
 
   const setSort = useCallback((sort: SortOption) => {
@@ -244,7 +261,7 @@ export function useIconFilters(catalogReady = true) {
   }, [])
 
   const setActivePackId = useCallback((packId: string | null) => {
-    setFilters((prev) => ({ ...prev, activePackId: packId, category: 'all' }))
+    setFilters((prev) => ({ ...prev, activePackId: packId, category: 'all', topic: null }))
   }, [])
 
   const toggleSource = useCallback((source: string) => {
@@ -286,11 +303,12 @@ export function useIconFilters(catalogReady = true) {
   const resetFilters = useCallback(() => {
     setFilters({
       category: 'all',
+      topic: null,
       searchQuery: '',
       selectedSources: [],
       selectedStyles: [],
       selectedLicenses: [],
-      iconSize: 24,
+      iconSize: 32,
       sort: 'all',
       activePackId: null,
     })
@@ -313,6 +331,11 @@ export function useIconFilters(catalogReady = true) {
       result = result.filter(
         (icon) => icon.category.toLowerCase() === filters.category.toLowerCase()
       )
+    }
+
+    if (filters.topic) {
+      const topic = ICON_TOPICS.find((item) => item.id === filters.topic)
+      if (topic) result = result.filter(topic.matches)
     }
 
     // 3. Sources Filter
@@ -404,6 +427,8 @@ export function useIconFilters(catalogReady = true) {
     return counts
   }, [catalogReady])
 
+  const topicCounts = useMemo(() => getIconTopicCounts(ICON_CATALOG), [catalogReady])
+
   return {
     filters,
     filteredIcons,
@@ -415,8 +440,10 @@ export function useIconFilters(catalogReady = true) {
     detailIconId,
     sourceCounts,
     licenseCounts,
+    topicCounts,
     setSearchQuery,
     setCategory,
+    setTopic,
     setSort,
     setIconSize,
     setActivePackId,

@@ -6,13 +6,24 @@ const tailwindSource = readFileSync(new URL('../src/styles/tailwind.css', import
 function declarations(source, selector) {
   const block = source.match(new RegExp(`${selector}\\s*\\{([\\s\\S]*?)\\}`))?.[1]
   if (!block) throw new Error(`Could not find ${selector} token block`)
-  return Object.fromEntries([...block.matchAll(/--([\w-]+):\s*(#[\da-f]{6})/gi)].map((match) => [match[1], match[2].toUpperCase()]))
+  return Object.fromEntries([...block.matchAll(/--([\w-]+):\s*([^;]+);/gi)].map((match) => [match[1], match[2].trim()]))
+}
+
+function resolveDeclarations(source, selector, inherited = {}) {
+  const values = { ...inherited, ...declarations(source, selector) }
+  return Object.fromEntries(Object.entries(values).map(([name, value]) => {
+    let resolved = value
+    for (let i = 0; i < 8 && /var\(--[\w-]+\)/.test(resolved); i++) {
+      resolved = resolved.replace(/var\(--([\w-]+)\)/g, (_match, ref) => values[ref] ?? _match)
+    }
+    return [name, resolved.toUpperCase()]
+  }))
 }
 
 const lightTokens = declarations(tokenSource, ':root')
 const darkTokens = declarations(tokenSource, 'html\\.dark')
-const lightUi = declarations(tailwindSource, ':root')
-const darkUi = declarations(tailwindSource, 'html\\.dark')
+const lightUi = resolveDeclarations(tailwindSource, ':root', lightTokens)
+const darkUi = resolveDeclarations(tailwindSource, 'html\\.dark', darkTokens)
 
 const palettes = {
   light: {
@@ -20,16 +31,22 @@ const palettes = {
     textThreshold: 4.5,
     componentThreshold: 3,
     statusThreshold: 4.5,
-    text: [lightTokens.ink, '#52525B', '#5932C0', '#2EA45B', '#D14343'],
-    component: [lightTokens.line, '#7141E8'],
+    text: [lightTokens.ink, lightTokens.muted, lightTokens['accent-text'], lightTokens.success, lightTokens.danger],
+    component: [lightTokens['control-line'], lightTokens.selection],
+    selectedState: {
+      foreground: lightTokens['accent-text'],
+      background: lightTokens['selection-soft'],
+      boundary: lightTokens.selection,
+      adjacentSurface: lightTokens.canvas,
+    },
     primaryButton: { foreground: lightUi['primary-foreground'], background: lightUi.primary },
-    code: { background: '#0F1116', foregrounds: ['#F1F1F3', '#B89AFF', '#38BDF8', '#A7F3D0', '#64748B'] },
+    code: { background: '#0F1116', foregrounds: ['#F1F1F3', '#B89AFF', '#38BDF8', '#A7F3D0', '#94A3B8'] },
     compareBadge: { foreground: '#B89AFF', background: '#2E2156' },
     statuses: [
-      ['#2EA45B', '#DCFCE7'],
+      [lightTokens.success, lightTokens['success-subtle']],
       ['#0369A1', '#E0F2FE'],
       ['#854D0E', '#FEF08A'],
-      ['#D14343', '#FFF5F5'],
+      [lightTokens.danger, lightTokens['danger-subtle']],
     ],
   },
   dark: {
@@ -38,9 +55,15 @@ const palettes = {
     statusThreshold: 7,
     surfaces: [darkTokens.canvas, darkTokens.surface, darkTokens['surface-strong']],
     text: [darkTokens.ink, darkTokens.muted, darkTokens['accent-text'], darkTokens.success, darkTokens.danger],
-    component: [darkTokens.line, darkTokens.violet],
+    component: [darkTokens['control-line'], darkTokens.selection],
+    selectedState: {
+      foreground: darkTokens['accent-text'],
+      background: darkTokens['selection-soft'],
+      boundary: darkTokens.selection,
+      adjacentSurface: darkTokens.surface,
+    },
     primaryButton: { foreground: darkUi['primary-foreground'], background: darkUi.primary },
-    code: { background: '#22252E', foregrounds: ['#F1F1F3', '#C5AEFF', '#7DD3FC', '#A7F3D0', '#B6B6C2'] },
+    code: { background: '#25262C', foregrounds: ['#F1F1F3', '#C5AEFF', '#7DD3FC', '#A7F3D0', '#B6B6C2'] },
     compareBadge: { foreground: '#E0D4FF', background: '#3A2D66' },
     statuses: [
       [darkTokens.success, darkTokens['success-subtle']],
@@ -89,6 +112,23 @@ for (const [theme, palette] of Object.entries(palettes)) {
       failures++
     }
   }
+  const selectedTextRatio = contrast(
+    palette.selectedState.foreground,
+    palette.selectedState.background,
+  )
+  const selectedTextThreshold = theme === 'dark' ? 7 : 4.5
+  if (selectedTextRatio < selectedTextThreshold) {
+    console.error(`FAIL ${theme} selected-state text: ${selectedTextRatio.toFixed(2)}:1 (needs ${selectedTextThreshold}:1)`)
+    failures++
+  }
+  const selectedBoundaryRatio = contrast(
+    palette.selectedState.boundary,
+    palette.selectedState.adjacentSurface,
+  )
+  if (selectedBoundaryRatio < 3) {
+    console.error(`FAIL ${theme} selected-state boundary: ${selectedBoundaryRatio.toFixed(2)}:1 (needs 3:1)`)
+    failures++
+  }
   const buttonRatio = contrast(palette.primaryButton.foreground, palette.primaryButton.background)
   if (buttonRatio < 4.5) {
     console.error(`FAIL ${theme} button text: ${buttonRatio.toFixed(2)}:1 (needs 4.5:1)`)
@@ -108,7 +148,7 @@ for (const [theme, palette] of Object.entries(palettes)) {
     console.error(`FAIL ${theme} comparison badge: ${badgeRatio.toFixed(2)}:1 (needs ${badgeThreshold}:1)`)
     failures++
   }
-  console.log(`${theme}: checked ${palette.text.length * palette.surfaces.length} text pairs at ${palette.textThreshold}:1, ${palette.component.length * palette.surfaces.length} non-text pairs at ${palette.componentThreshold}:1, ${palette.statuses.length} status pairs and 1 button pair`)
+  console.log(`${theme}: checked ${palette.text.length * palette.surfaces.length} text pairs at ${palette.textThreshold}:1, ${palette.component.length * palette.surfaces.length} non-text pairs at ${palette.componentThreshold}:1, ${palette.statuses.length} status pairs, 1 selected state, and 1 button pair`)
 }
 
 if (failures) process.exitCode = 1

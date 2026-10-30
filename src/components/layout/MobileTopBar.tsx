@@ -25,10 +25,10 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
       </a>
 
       <div className="mobile-top-bar__actions">
+        <AnimatedThemeToggler theme={theme} onThemeChange={onThemeChange} className="mobile-top-bar__action-button" />
         <button type="button" className="mobile-top-bar__action-button mobile-top-bar__menu-button" onClick={onOpenMenu} aria-haspopup="dialog">
           <Menu size={24} />
         </button>
-        <AnimatedThemeToggler theme={theme} onThemeChange={onThemeChange} className="mobile-top-bar__action-button" />
       </div>
     </div>
 

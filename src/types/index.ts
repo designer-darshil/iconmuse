@@ -63,6 +63,7 @@ export interface ShellState {
 
 export interface IconFilterState {
   category: string
+  topic: string | null
   searchQuery: string
   selectedSources: string[]
   selectedStyles: string[]
@@ -98,11 +99,11 @@ export interface LeftNavRailProps {
 
 export interface MainWorkspaceProps {
   isLoading?: boolean
-  isDark?: boolean
   onToggleSidebar?: () => void
   isSidebarOpen?: boolean
   breakpoint?: DeviceBreakpoint
   activeColor?: string
+  onSelectColor: (color: string) => void
   onSelectIcon?: (icon: IconItem) => void
   selectedIcon?: IconItem | null
   activePanel?: RightSidebarPanel
@@ -118,8 +119,10 @@ export interface RightSidebarProps {
   isFloating?: boolean
   onToggleFloating?: () => void
   activePanel: RightSidebarPanel
+  activeCategory: string
   onSelectPanel: (panel: RightSidebarPanel) => void
   activeColor?: string
+  onSelectColor: (color: string) => void
   savedIconIds: string[]
   onToggleSave: (id: string) => void
   onSelectIcon: (icon: IconItem) => void

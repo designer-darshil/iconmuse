@@ -46,7 +46,7 @@ export const ExtensionsPanel: React.FC<ExtensionsPanelProps> = ({
       </p>
     </div>
 
-    <div className="divide-y divide-[#F0F0F2]">
+    <div className="divide-y divide-[var(--line)]">
       {LIBRARIES.map((library) => {
         const selected = selectedSources.includes(library.name);
         const count = sourceCounts[library.name] ?? 0;
@@ -56,7 +56,7 @@ export const ExtensionsPanel: React.FC<ExtensionsPanelProps> = ({
             type="button"
             aria-pressed={selected}
             onClick={() => onToggleSource(library.name)}
-            className={`flex min-h-[58px] w-full items-center justify-between gap-4 py-3 text-left transition-colors ${selected ? "text-[#5630BD]" : "text-[#303038] hover:text-[#0F1116]"}`}
+            className={`flex min-h-14.5 w-full items-center justify-between gap-4 py-3 text-left transition-colors ${selected ? "text-[#5630BD]" : "text-[#303038] hover:text-[#0F1116]"}`}
           >
             <span className="min-w-0">
               <span

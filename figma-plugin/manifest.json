@@ -1,0 +1,13 @@
+{
+  "name": "IconMuse",
+  "id": "1697523706696908493",
+  "api": "1.0.0",
+  "editorType": ["figma"],
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["https://*.workers.dev"],
+    "devAllowedDomains": ["http://localhost:8787"]
+  }
+}

@@ -57,6 +57,7 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectItem(item.id)}
+                aria-current={isActive ? "page" : undefined}
                 className="flex flex-col items-center justify-center p-1.5"
                 aria-label={item.fullLabel}
                 title={item.fullLabel}
@@ -66,7 +67,7 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
                   className={cn(
                     "w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150",
                     isActive
-                      ? "bg-[#0F1116] text-white shadow-xs"
+                      ? "bg-[var(--selection)] text-white shadow-xs"
                       : "bg-transparent text-[#8E8E93] group-hover:bg-white group-hover:text-[#0F1116]",
                   )}
                 >
@@ -78,7 +79,7 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
                   className={cn(
                     "text-xs mt-1 tracking-tight text-center transition-colors",
                     isActive
-                      ? "font-bold text-[#0F1116]"
+                      ? "font-bold text-[var(--selection)]"
                       : "font-medium text-[#8E8E93] group-hover:text-[#0F1116]",
                   )}
                 >
@@ -104,6 +105,7 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectItem(item.id)}
+                aria-current={isActive ? "page" : undefined}
                 className="flex flex-col items-center justify-center p-1.5"
                 aria-label={item.fullLabel}
                 title={item.fullLabel}
@@ -112,7 +114,7 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
                   className={cn(
                     "w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-150",
                     isActive
-                      ? "bg-[#0F1116] text-white shadow-xs"
+                      ? "bg-[var(--selection)] text-white shadow-xs"
                       : "bg-transparent text-[#8E8E93] group-hover:bg-white group-hover:text-[#0F1116]",
                   )}
                 >
@@ -123,7 +125,7 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
                   className={cn(
                     "text-[10px] mt-1 tracking-tight text-center transition-colors",
                     isActive
-                      ? "font-bold text-[#0F1116]"
+                      ? "font-bold text-[var(--selection)]"
                       : "font-medium text-[#8E8E93] group-hover:text-[#0F1116]",
                   )}
                 >
