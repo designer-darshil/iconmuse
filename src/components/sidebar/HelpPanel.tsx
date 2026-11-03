@@ -1,5 +1,10 @@
 import React from "react";
-import { Search, SlidersHorizontal, Bookmark, Download, Layers, ArrowUpRight } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  Bookmark,
+  Download,
+} from "lucide-react";
 
 const GUIDES = [
   {
@@ -53,7 +58,7 @@ export const HelpPanel: React.FC = () => (
       ))}
     </div>
 
-    <a
+    {/* <a
       href="/design-system"
       className="mt-1 flex items-start justify-between gap-3 rounded-xl border border-[#7141E8]/25 bg-[#F7F4FF] p-3.5 text-left no-underline transition-colors hover:border-[#7141E8]/50"
     >
@@ -69,6 +74,6 @@ export const HelpPanel: React.FC = () => (
         </div>
       </div>
       <ArrowUpRight className="w-4 h-4 text-[#7141E8] shrink-0" />
-    </a>
+    </a> */}
   </div>
 );

@@ -1,5 +1,5 @@
 import React from "react";
-import { PanelRightClose, PanelRightOpen, Layers } from "lucide-react";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import type { DesktopHeaderProps } from "../../types";
 import { AnimatedThemeToggler } from "../ui/animated-theme-toggler";
 import { BrandLogo } from "../common/BrandLogo";
@@ -47,14 +47,14 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = ({
     </nav>
 
     <div className="desktop-header__actions">
-      <a
+      {/* <a
         href="/design-system"
         className="inline-flex h-9 items-center gap-1.5 rounded-[0.7rem] border border-[var(--line)] bg-[var(--surface)] px-3 text-xs font-semibold text-[var(--ink)] no-underline transition-colors hover:bg-[var(--surface-strong)]"
         title="Open IconMuse Design System"
       >
         <Layers className="h-3.5 w-3.5 text-[var(--violet)]" aria-hidden="true" />
         <span>Design System</span>
-      </a>
+      </a> */}
       <AnimatedThemeToggler
         theme={theme}
         onThemeChange={onThemeChange}
