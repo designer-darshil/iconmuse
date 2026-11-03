@@ -1,5 +1,5 @@
 import React from "react";
-import { Compass, Boxes, Bookmark, Puzzle, HelpCircle } from "lucide-react";
+import { SlidersHorizontal, Boxes, Bookmark, Puzzle, HelpCircle } from "lucide-react";
 import type { LeftNavRailProps } from "../../types";
 import { cn } from "../../utils/cn";
 
@@ -10,9 +10,9 @@ export const LeftNavRail: React.FC<LeftNavRailProps> = ({
   const primaryControls = [
     {
       id: "discover",
-      label: "Discover",
-      fullLabel: "Discover / Filters",
-      icon: Compass,
+      label: "Filters",
+      fullLabel: "Filters",
+      icon: SlidersHorizontal,
     },
     {
       id: "collections",

@@ -1,7 +1,7 @@
 import type { NavRailItem } from '../types'
 
 export const PRIMARY_NAV_ITEMS: NavRailItem[] = [
-  { id: 'discover', label: 'Discover', iconName: 'discover' },
+  { id: 'discover', label: 'Filters', iconName: 'discover' },
   { id: 'collections', label: 'Collections', iconName: 'collections' },
   { id: 'saved', label: 'Saved', iconName: 'saved' },
 ]
