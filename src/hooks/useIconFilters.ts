@@ -1,6 +1,12 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { ICON_CATALOG } from '../data/iconCatalog'
-import { ICON_PACKS } from '../data/iconPacks'
+import {
+  CATALOG_SUMMARY,
+  ICON_CATALOG,
+  hasIconCatalogItem,
+  loadIconCatalog,
+  subscribeCatalogUpdates,
+} from '../data/iconCatalog'
+import { ICON_PACKS, syncIconPacks } from '../data/iconPacks'
 import { searchIcons } from '../utils/iconSearch'
 import { getIconTopicCounts, ICON_TOPICS } from '../data/iconTopics'
 import type { IconCollection, IconFilterState, SortOption } from '../types'
@@ -48,6 +54,13 @@ export function useIconFilters(catalogReady = true) {
   }
 
   const [filters, setFilters] = useState<IconFilterState>(getInitialUrlState)
+  const [catalogRevision, setCatalogRevision] = useState(0)
+
+  useEffect(() => {
+    return subscribeCatalogUpdates(() => {
+      setCatalogRevision((rev) => rev + 1)
+    })
+  }, [])
 
   // Deep-linkable Icon Detail ID
   const [detailIconId, setDetailIconId] = useState<string | null>(() => {
@@ -96,17 +109,50 @@ export function useIconFilters(catalogReady = true) {
     }
   }, [collections])
 
-  // The shell mounts while the compact catalog metadata is loading. Reconcile
-  // saved IDs only after the metadata arrives so existing favorites survive.
+  // Reconcile saved IDs only after the full catalog metadata arrives, and skip
+  // work entirely when the user has no saved icons or collections.
   useEffect(() => {
-    if (!catalogReady) return
-    const availableIds = new Set(ICON_CATALOG.map((icon) => icon.id))
-    setSavedIconIds((previous) => previous.filter((id) => availableIds.has(id)))
-    setCollections((previous) => previous.map((collection) => ({
-      ...collection,
-      iconIds: collection.iconIds.filter((id) => availableIds.has(id)),
-    })))
-  }, [catalogReady])
+    if (!catalogReady || !CATALOG_SUMMARY.isFullCatalogLoaded) return
+    setSavedIconIds((previous) => {
+      if (previous.length === 0) return previous
+      const next = previous.filter((id) => hasIconCatalogItem(id))
+      return next.length === previous.length ? previous : next
+    })
+    setCollections((previous) => {
+      if (previous.length === 0) return previous
+      let changed = false
+      const next = previous.map((collection) => {
+        const filtered = collection.iconIds.filter((id) => hasIconCatalogItem(id))
+        if (filtered.length !== collection.iconIds.length) changed = true
+        return filtered.length === collection.iconIds.length ? collection : { ...collection, iconIds: filtered }
+      })
+      return changed ? next : previous
+    })
+  }, [catalogReady, catalogRevision])
+
+  const isDefaultFilter =
+    !filters.activePackId &&
+    (!filters.category || filters.category === 'all') &&
+    !filters.topic &&
+    filters.selectedSources.length === 0 &&
+    filters.selectedStyles.length === 0 &&
+    filters.selectedLicenses.length === 0 &&
+    !filters.searchQuery.trim() &&
+    filters.sort === 'all'
+
+  // Trigger full catalog loading immediately if any non-default filter, detail modal,
+  // or saved icon requires items beyond the initial 72-icon boot payload.
+  useEffect(() => {
+    if (!catalogReady || CATALOG_SUMMARY.isFullCatalogLoaded) return
+    const needsFullCatalog =
+      !isDefaultFilter ||
+      Boolean(detailIconId) ||
+      savedIconIds.length > 0 ||
+      collections.some((c) => c.iconIds.length > 0)
+    if (needsFullCatalog) {
+      void loadIconCatalog().catch(() => undefined)
+    }
+  }, [catalogReady, isDefaultFilter, detailIconId, savedIconIds, collections])
 
   // Compare State (Up to 4 icons)
   const [compareIconIds, setCompareIconIds] = useState<string[]>([])
@@ -169,6 +215,7 @@ export function useIconFilters(catalogReady = true) {
 
     const queryString = params.toString()
     const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname
+    const currentUrl = `${window.location.pathname}${window.location.search}`
 
     // If detail modal opened or closed, pushState allows browser Back to close it
     if (detailIconId) {
@@ -179,7 +226,9 @@ export function useIconFilters(catalogReady = true) {
       }
     }
 
-    window.history.replaceState({}, '', newUrl)
+    if (newUrl !== currentUrl) {
+      window.history.replaceState({}, '', newUrl)
+    }
   }, [filters.searchQuery, filters.category, filters.topic, filters.sort, filters.selectedSources, filters.activePackId, detailIconId])
 
   // Open and close detail modal
@@ -257,7 +306,13 @@ export function useIconFilters(catalogReady = true) {
   }, [])
 
   const setTopic = useCallback((topic: string | null) => {
-    setFilters((prev) => ({ ...prev, topic, category: 'all', activePackId: null }))
+    setFilters((prev) => ({
+      ...prev,
+      topic,
+      category: 'all',
+      activePackId: null,
+      ...(topic === null ? { selectedSources: [] } : {}),
+    }))
   }, [])
 
   const setSort = useCallback((sort: SortOption) => {
@@ -324,13 +379,19 @@ export function useIconFilters(catalogReady = true) {
 
   // Filtering Calculation
   const filteredIcons = useMemo(() => {
+    if (isDefaultFilter) {
+      return ICON_CATALOG
+    }
+
     let result = [...ICON_CATALOG]
 
     // 1. Pack Filter (if active pack)
     if (filters.activePackId) {
+      syncIconPacks(ICON_CATALOG, filters.activePackId)
       const pack = ICON_PACKS.find((p) => p.id === filters.activePackId)
       if (pack) {
-        result = result.filter((icon) => pack.iconIds.includes(icon.id))
+        const packIdSet = new Set(pack.iconIds)
+        result = result.filter((icon) => packIdSet.has(icon.id))
       }
     }
 
@@ -389,10 +450,13 @@ export function useIconFilters(catalogReady = true) {
     }
 
     return result
-  }, [filters, catalogReady])
+  }, [filters, isDefaultFilter, catalogReady, catalogRevision])
 
-  // Dynamic counts for filter badges
+  // Dynamic counts for filter badges (O(1) when build-time summary is available)
   const sourceCounts = useMemo(() => {
+    if (CATALOG_SUMMARY.sourceCounts) {
+      return CATALOG_SUMMARY.sourceCounts
+    }
     const counts: Record<string, number> = {
       Lucide: 0,
       Phosphor: 0,
@@ -413,7 +477,6 @@ export function useIconFilters(catalogReady = true) {
       'Glass Icons': 0,
       'Flowbite Illustrations': 0,
       Bioicons: 0,
-      'IRA Design': 0,
     }
     ICON_CATALOG.forEach((icon) => {
       if (counts[icon.source] !== undefined) {
@@ -423,9 +486,12 @@ export function useIconFilters(catalogReady = true) {
       }
     })
     return counts
-  }, [catalogReady])
+  }, [catalogReady, catalogRevision])
 
   const licenseCounts = useMemo(() => {
+    if (CATALOG_SUMMARY.licenseCounts) {
+      return CATALOG_SUMMARY.licenseCounts
+    }
     const counts: Record<string, number> = { MIT: 0, ISC: 0, 'Apache-2.0': 0, 'CC0-1.0': 0, BSD: 0 }
     ICON_CATALOG.forEach((icon) => {
       if (counts[icon.license] !== undefined) {
@@ -433,15 +499,25 @@ export function useIconFilters(catalogReady = true) {
       }
     })
     return counts
-  }, [catalogReady])
+  }, [catalogReady, catalogRevision])
 
-  const topicCounts = useMemo(() => getIconTopicCounts(ICON_CATALOG), [catalogReady])
+  const topicCounts = useMemo(
+    () => getIconTopicCounts(ICON_CATALOG, CATALOG_SUMMARY.topicCounts),
+    [catalogReady, catalogRevision],
+  )
+
+  const totalCatalogCount = CATALOG_SUMMARY.totalCount || ICON_CATALOG.length
+  const totalCount = isDefaultFilter ? totalCatalogCount : filteredIcons.length
+  const isCatalogLoading =
+    !catalogReady ||
+    (!isDefaultFilter && !CATALOG_SUMMARY.isFullCatalogLoaded && filteredIcons.length === 0)
 
   return {
     filters,
     filteredIcons,
-    totalCount: filteredIcons.length,
-    catalogCount: ICON_CATALOG.length,
+    isCatalogLoading,
+    totalCount,
+    catalogCount: totalCatalogCount,
     savedIconIds,
     collections,
     compareIconIds,

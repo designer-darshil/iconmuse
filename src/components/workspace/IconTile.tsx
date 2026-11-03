@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { memo, useState } from "react";
 import { Copy, Heart, Columns2, Check } from "lucide-react";
 import type { IconItem } from "../../types";
 import { cn } from "../../utils/cn";
@@ -15,6 +15,7 @@ function getIllustrationTileSvg(svg: string) {
 
 export interface IconTileProps {
   icon: IconItem;
+  hasSvg?: boolean;
   activeColor: string;
   iconSize?: number;
   isSaved: boolean;
@@ -27,8 +28,9 @@ export interface IconTileProps {
   index?: number;
 }
 
-export const IconTile: React.FC<IconTileProps> = ({
+export const IconTile: React.FC<IconTileProps> = memo(({
   icon,
+  hasSvg,
   activeColor,
   iconSize = 32,
   isSaved,
@@ -42,7 +44,7 @@ export const IconTile: React.FC<IconTileProps> = ({
   const [hasCopied, setHasCopied] = useState(false);
   const IconComponent = icon.component;
   const isIllustration = icon.category === "Illustrations";
-  const isSvgReady = Boolean(icon.svg);
+  const isSvgReady = hasSvg ?? Boolean(icon.svg);
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -175,4 +177,5 @@ export const IconTile: React.FC<IconTileProps> = ({
       </div>
     </div>
   );
-};
+});
+IconTile.displayName = "IconTile";

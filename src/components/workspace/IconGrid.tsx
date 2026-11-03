@@ -1,14 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import React, { useState, useEffect, useMemo } from "react";
 import { SearchX, RotateCcw, Check, ChevronDown } from "lucide-react";
 import { IconTile } from "./IconTile";
 import type { IconItem, SortOption, ViewDensity } from "../../types";
 import { cn } from "../../utils/cn";
-import { getIconSvg, loadIconSvgsFor } from "../../data/iconCatalog";
+import {
+  CATALOG_SUMMARY,
+  getIconSvg,
+  loadIconCatalog,
+  loadIconSvgsFor,
+} from "../../data/iconCatalog";
 import { copyToClipboard } from "../../utils/copyToClipboard";
 
 export interface IconGridProps {
   icons: IconItem[];
+  totalCount?: number;
   activeSort: SortOption;
   isLoading?: boolean;
   searchQuery: string;
@@ -28,6 +33,7 @@ const BATCH_SIZE = 72;
 
 export const IconGrid: React.FC<IconGridProps> = ({
   icons,
+  totalCount,
   activeSort,
   isLoading = false,
   searchQuery,
@@ -45,28 +51,42 @@ export const IconGrid: React.FC<IconGridProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(BATCH_SIZE);
   const [, setSvgRevision] = useState(0);
-  const shouldReduceMotion = useReducedMotion();
+
+  const savedSet = useMemo(() => new Set(savedIconIds), [savedIconIds]);
+  const compareSet = useMemo(() => new Set(compareIconIds), [compareIconIds]);
 
   // Reset pagination batch when filters or search change
   useEffect(() => {
     setVisibleCount(BATCH_SIZE);
-  }, [icons.length, searchQuery]);
+  }, [totalCount, searchQuery]);
 
   useEffect(() => {
     if (isLoading) return;
     const visibleIcons = icons.slice(0, visibleCount);
     if (!visibleIcons.some((icon) => !icon.svg)) return;
     let active = true;
-    loadIconSvgsFor(visibleIcons)
-      .then(() => { if (active) setSvgRevision((revision) => revision + 1) })
-      .catch(() => { if (active) setSvgRevision((revision) => revision + 1) });
+    const notify = () => {
+      if (active) setSvgRevision((revision) => revision + 1);
+    };
+    loadIconSvgsFor(visibleIcons, notify)
+      .then(notify)
+      .catch(notify);
     return () => { active = false };
   }, [icons, visibleCount, isLoading]);
 
+  const effectiveTotal = Math.max(icons.length, totalCount ?? icons.length);
   const visibleIcons = icons.slice(0, visibleCount);
-  const hasMore = visibleCount < icons.length;
+  const hasMore = visibleCount < effectiveTotal;
 
-  const handleCopySvg = async (icon: IconItem) => {
+  const handleLoadMore = () => {
+    const nextCount = visibleCount + BATCH_SIZE;
+    setVisibleCount(nextCount);
+    if (!CATALOG_SUMMARY.isFullCatalogLoaded) {
+      void loadIconCatalog().catch(() => undefined);
+    }
+  };
+
+  const handleCopySvg = React.useCallback(async (icon: IconItem) => {
     const svgCode = getIconSvg(icon, activeColor, iconSize);
     try {
       await copyToClipboard(svgCode);
@@ -79,7 +99,7 @@ export const IconGrid: React.FC<IconGridProps> = ({
     setTimeout(() => {
       setToastMessage(null);
     }, 2000);
-  };
+  }, [activeColor, iconSize]);
 
   // 1. Loading Skeletons State
   if (isLoading) {
@@ -116,12 +136,12 @@ export const IconGrid: React.FC<IconGridProps> = ({
         </div>
 
         <h3 className="text-base md:text-lg font-semibold text-[#0F1116] mb-1">
-          No matching icons found
+          No icons found
         </h3>
         <p className="text-xs md:text-sm text-[#8E8E93] max-w-sm mb-6 leading-relaxed">
           {searchQuery
-            ? `We couldn't find anything matching "${searchQuery}". Try selecting fewer filters or searching for broader terms.`
-            : "There are no icons matching the currently selected filters."}
+            ? `No results for "${searchQuery}". Try another search or clear your filters.`
+            : "No icons match the selected filters."}
         </p>
 
         <button
@@ -130,7 +150,7 @@ export const IconGrid: React.FC<IconGridProps> = ({
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0F1116] hover:bg-[#1E2028] text-white text-xs font-semibold transition-all shadow-subtle hover:-translate-y-[1px] active:translate-y-0"
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset search & filters</span>
+          <span>Clear filters</span>
         </button>
       </div>
     );
@@ -138,56 +158,46 @@ export const IconGrid: React.FC<IconGridProps> = ({
 
   return (
     <div className="w-full p-3 md:p-6 pb-14 md:pb-32 relative">
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={activeSort}
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={shouldReduceMotion ? undefined : { opacity: 0, y: -3 }}
-          transition={{
-            duration: shouldReduceMotion ? 0 : 0.14,
-            ease: "easeOut",
-          }}
+      <div key={activeSort}>
+        <div
+          className={cn(
+            "grid gap-x-3 gap-y-4",
+            viewDensity === "normal"
+              ? "grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
+              : "grid-cols-3 xs:grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10",
+          )}
         >
-          <div
-            className={cn(
-              "grid gap-x-3 gap-y-4",
-              viewDensity === "normal"
-                ? "grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
-                : "grid-cols-3 xs:grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10",
-            )}
-          >
-            {visibleIcons.map((icon) => (
-              <IconTile
-                key={icon.id}
-                icon={icon}
-                activeColor={activeColor}
-                iconSize={iconSize}
-                isSaved={savedIconIds.includes(icon.id)}
-                isCompared={compareIconIds.includes(icon.id)}
-                onToggleSave={onToggleSave}
-                onToggleCompare={onToggleCompare}
-                onCopySvg={handleCopySvg}
-                onSelectIcon={onSelectIcon}
-                isSelected={selectedIcon?.id === icon.id}
-              />
-            ))}
-          </div>
-        </motion.div>
-      </AnimatePresence>
+          {visibleIcons.map((icon) => (
+            <IconTile
+              key={icon.id}
+              icon={icon}
+              hasSvg={Boolean(icon.svg)}
+              activeColor={activeColor}
+              iconSize={iconSize}
+              isSaved={savedSet.has(icon.id)}
+              isCompared={compareSet.has(icon.id)}
+              onToggleSave={onToggleSave}
+              onToggleCompare={onToggleCompare}
+              onCopySvg={handleCopySvg}
+              onSelectIcon={onSelectIcon}
+              isSelected={selectedIcon?.id === icon.id}
+            />
+          ))}
+        </div>
+      </div>
 
       {/* Pagination / Virtual Batching abstraction for large sets */}
       {hasMore && (
         <div className="flex flex-col items-center justify-center mt-10 mb-4 gap-2">
           <p className="text-xs text-[#8E8E93]">
-            Showing {visibleIcons.length} of {icons.length} glyphs
+            Showing {visibleIcons.length.toLocaleString()} of {effectiveTotal.toLocaleString()} icons
           </p>
           <button
             type="button"
-            onClick={() => setVisibleCount((prev) => prev + BATCH_SIZE)}
+            onClick={handleLoadMore}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white hover:bg-[#F7F7F8] border border-[#E7E7EA] text-xs font-semibold text-[#0F1116] transition-all shadow-subtle hover:-translate-y-[1px] active:translate-y-0"
           >
-            <span>Load more icons</span>
+            <span>Load more</span>
             <ChevronDown className="w-3.5 h-3.5 text-[#8E8E93]" />
           </button>
         </div>
