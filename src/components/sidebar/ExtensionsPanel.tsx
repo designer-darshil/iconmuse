@@ -1,5 +1,6 @@
 import React from "react";
 import type { IconSource } from "../../types";
+import { ProviderLogo } from "../common/ProviderLogo";
 
 interface ExtensionsPanelProps {
   sourceCounts: Record<string, number>;
@@ -27,7 +28,6 @@ const LIBRARIES: Array<{ name: IconSource; license: string }> = [
   { name: "Glass Icons", license: "CC-BY-4.0" },
   { name: "Flowbite Illustrations", license: "MIT" },
   { name: "Bioicons", license: "CC0 / BSD" },
-  { name: "IRA Design", license: "MIT" },
 ];
 
 export const ExtensionsPanel: React.FC<ExtensionsPanelProps> = ({
@@ -56,16 +56,19 @@ export const ExtensionsPanel: React.FC<ExtensionsPanelProps> = ({
             type="button"
             aria-pressed={selected}
             onClick={() => onToggleSource(library.name)}
-            className={`flex min-h-14.5 w-full items-center justify-between gap-4 py-3 text-left transition-colors ${selected ? "text-[#5630BD]" : "text-[#303038] hover:text-[#0F1116]"}`}
+            className={`group flex min-h-14.5 w-full items-center justify-between gap-4 py-3 text-left transition-colors ${selected ? "text-[#5630BD]" : "text-[#303038] hover:text-[#0F1116]"}`}
           >
-            <span className="min-w-0">
-              <span
-                className={`block text-sm ${selected ? "font-semibold" : "font-medium"}`}
-              >
-                {library.name}
-              </span>
-              <span className="mt-1 block text-[11px] text-[#8E8E93]">
-                {library.license}
+            <span className="flex items-center gap-3 min-w-0">
+              <ProviderLogo source={library.name} className="size-8 rounded-lg" size={18} />
+              <span className="min-w-0">
+                <span
+                  className={`block text-sm truncate ${selected ? "font-semibold" : "font-medium"}`}
+                >
+                  {library.name}
+                </span>
+                <span className="mt-0.5 block text-[11px] text-[#8E8E93]">
+                  {library.license}
+                </span>
               </span>
             </span>
             <span className="shrink-0 text-xs tabular-nums text-[#777780]">
