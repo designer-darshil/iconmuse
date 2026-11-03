@@ -44,7 +44,7 @@ function add(source, name, style, svg, license, preserveColors = false, author, 
     })
   }
   const readableName = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/Icon$/, '').replace(/[-_]+/g, ' ').trim()
-  const category = categoryOverride ?? (['Open Doodles', 'Open Peeps', 'Fluent Emoji', 'Flowbite Illustrations', 'Bioicons', 'IRA Design'].includes(source) ? 'Illustrations' : 'Icons')
+  const category = categoryOverride ?? (['Open Doodles', 'Open Peeps', 'Fluent Emoji', 'Flowbite Illustrations', 'Bioicons'].includes(source) ? 'Illustrations' : 'Icons')
   const tags = slugify(name).split('-')
   if (style === '3d') tags.push('3d')
   if (style === 'gradient' || /<(?:linear|radial)Gradient\b/i.test(svg)) tags.push('gradient')
@@ -265,9 +265,6 @@ for (const icon of JSON.parse(fs.readFileSync(path.join(bioiconsRoot, 'index.jso
   if (record) record.tags.push(...category.toLowerCase().split(/\s+/))
 }
 
-const iraIllustration = fs.readFileSync(path.join(root, 'public/illustrations/ira-design/man-simple.svg'), 'utf8')
-add('IRA Design', 'Man Simple', 'illustration', iraIllustration, 'MIT', true)
-
 const seenIds = new Set()
 const positionsBySvg = new Map()
 const unique = []
@@ -322,10 +319,115 @@ for (const [source, sourceRecords] of recordsBySource) {
   }
   flushShard()
 }
-const metadata = unique.map(({ svg, ...record }) => ({ ...record, svgShard: shardById.get(record.id) }))
+const metadata = unique.map(({ svg: _svg, ...record }) => ({ ...record, svgShard: shardById.get(record.id) }))
 const metadataFile = `icon-catalog-${catalogVersion}-metadata.json.gz`
 fs.writeFileSync(path.join(catalogDir, metadataFile), gzipSync(JSON.stringify(metadata), { level: 9 }))
-const manifest = { version: catalogVersion, count: unique.length, metadataFile, shards }
+
+// Pre-compute source, license, topic, and pack counts at build time so the
+// client renders counts in O(1) without scanning 63k records on the main thread.
+const sourceCounts = {
+  Lucide: 0,
+  Phosphor: 0,
+  Tabler: 0,
+  Heroicons: 0,
+  'Simple Icons': 0,
+  'Feather Icons': 0,
+  'Remix Icon': 0,
+  Lineicons: 0,
+  'Material Symbols': 0,
+  'Fluent System Icons': 0,
+  'Carbon Icons': 0,
+  'Bootstrap Icons': 0,
+  'MingCute Icons': 0,
+  'Open Doodles': 0,
+  'Open Peeps': 0,
+  'Fluent Emoji': 0,
+  'Glass Icons': 0,
+  'Flowbite Illustrations': 0,
+  Bioicons: 0,
+}
+const licenseCounts = { MIT: 0, ISC: 0, 'Apache-2.0': 0, 'CC0-1.0': 0, BSD: 0 }
+const topicDefinitions = [
+  ['arrows', ['arrow', 'chevron', 'caret', 'direction', 'turn', 'move']],
+  ['transport', ['car', 'bus', 'truck', 'taxi', 'bike', 'bicycle', 'plane', 'train', 'tram', 'ship', 'boat', 'scooter', 'road', 'traffic', 'transport']],
+  ['albums', ['album', 'albums', 'disc', 'music', 'playlist', 'audio', 'headphone', 'speaker', 'microphone', 'record', 'volume']],
+  ['brands', null],
+  ['development', ['code', 'terminal', 'database', 'server', 'git', 'branch', 'bug', 'api', 'command', 'programming', 'bracket', 'dev']],
+  ['education', ['book', 'education', 'school', 'graduation', 'student', 'pencil', 'library', 'chalkboard', 'classroom', 'teacher']],
+  ['communication', ['message', 'chat', 'mail', 'email', 'phone', 'call', 'comment', 'send', 'share', 'conversation']],
+  ['media', ['camera', 'image', 'video', 'film', 'photo', 'play', 'youtube', 'media', 'screen', 'broadcast']],
+  ['navigation', ['map', 'pin', 'location', 'compass', 'navigation', 'globe', 'route', 'marker']],
+  ['commerce', ['cart', 'shop', 'store', 'bag', 'wallet', 'payment', 'credit', 'receipt', 'checkout', 'money', 'cash', 'coin']],
+  ['nature', ['leaf', 'tree', 'flower', 'plant', 'earth', 'nature', 'animal', 'bird', 'fish', 'bug', 'paw']],
+  ['security', ['lock', 'key', 'shield', 'security', 'password', 'fingerprint', 'privacy', 'verified', 'safe']],
+  ['devices', ['computer', 'laptop', 'desktop', 'tablet', 'mobile', 'device', 'keyboard', 'mouse', 'monitor', 'printer']],
+  ['files', ['file', 'folder', 'document', 'archive', 'attachment', 'paperclip', 'download', 'upload']],
+]
+const packDefinitions = [
+  ['pack-essential-ui', ['arrow', 'menu', 'search', 'settings', 'home', 'user', 'check', 'close', 'filter', 'grid', 'layout', 'bell', 'calendar', 'clock', 'plus', 'minus']],
+  ['pack-ecommerce', ['cart', 'shopping', 'store', 'wallet', 'credit', 'payment', 'dollar', 'banknote', 'truck', 'package', 'tag', 'receipt', 'gift', 'bag']],
+  ['pack-dev-cloud', ['code', 'git', 'terminal', 'database', 'server', 'cloud', 'api', 'workflow', 'branch', 'commit', 'pull request', 'cpu', 'command', 'bug', 'braces']],
+  ['pack-creative-media', ['camera', 'video', 'film', 'image', 'palette', 'pen', 'brush', 'crop', 'aperture', 'music', 'headphones', 'mic', 'play', 'sparkles']],
+  ['pack-security-auth', ['shield', 'lock', 'key', 'fingerprint', 'security', 'password', 'scan', 'user check', 'eye', 'badge', 'verified', 'safe']],
+  ['pack-nature-climate', ['sun', 'moon', 'cloud', 'wind', 'tree', 'leaf', 'snowflake', 'flame', 'rain', 'nature', 'flower', 'water', 'earth', 'temperature']],
+]
+const topicCounts = {
+  all: 0,
+  illustrations: 0,
+  ...Object.fromEntries(topicDefinitions.map(([id]) => [id, 0])),
+}
+const packCounts = Object.fromEntries(packDefinitions.map(([id]) => [id, 0]))
+
+for (const icon of unique) {
+  sourceCounts[icon.source] = (sourceCounts[icon.source] ?? 0) + 1
+  if (licenseCounts[icon.license] !== undefined) licenseCounts[icon.license]++
+  const lowerName = icon.name.toLowerCase()
+  const words = ` ${lowerName} ${icon.tags.join(' ').toLowerCase()} `.replace(/[^a-z0-9]+/g, ' ')
+  if (icon.category === 'Icons') {
+    topicCounts.all++
+    for (const [topicId, terms] of topicDefinitions) {
+      if (terms === null) {
+        if (icon.source === 'Simple Icons') topicCounts[topicId]++
+      } else if (terms.some((term) => words.includes(` ${term} `))) {
+        topicCounts[topicId]++
+      }
+    }
+  } else if (icon.category === 'Illustrations') {
+    topicCounts.illustrations++
+  }
+  for (const [packId, terms] of packDefinitions) {
+    if (terms.some((term) => lowerName.includes(term) || icon.tags.some((tag) => tag.includes(term)))) {
+      packCounts[packId]++
+    }
+  }
+}
+
+const initialIcons = unique.slice(0, 72).map((record) => ({
+  ...record,
+  svgShard: shardById.get(record.id),
+}))
+const bootPayload = {
+  version: catalogVersion,
+  count: unique.length,
+  metadataFile,
+  sourceCounts,
+  licenseCounts,
+  topicCounts,
+  packCounts,
+  initialIcons,
+}
+fs.writeFileSync(path.join(catalogDir, 'icon-catalog-boot.json'), JSON.stringify(bootPayload))
+
+const manifest = {
+  version: catalogVersion,
+  count: unique.length,
+  metadataFile,
+  sourceCounts,
+  licenseCounts,
+  topicCounts,
+  packCounts,
+  shards,
+}
 fs.writeFileSync(path.join(catalogDir, 'icon-catalog-manifest.json'), JSON.stringify(manifest))
 
 // Remove the previous single-file catalog and obsolete shards so production
@@ -368,6 +470,5 @@ fs.copyFileSync(path.join(root, 'node_modules/@fluentui-emoji/svg/LICENSE'), pat
 for (const [source, target] of [
   ['public/illustrations/bioicons/licenses/cc-0.txt', 'bioicons-CC0-1.0.txt'],
   ['public/illustrations/bioicons/licenses/bsd.txt', 'bioicons-BSD.txt'],
-  ['public/illustrations/ira-design/LICENSE.txt', 'ira-design-MIT.txt'],
 ]) fs.copyFileSync(path.join(root, source), path.join(licenseDir, target))
 console.log(`Wrote metadata and ${unique.length} SVGs across ${shards.length} compressed shards`)

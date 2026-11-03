@@ -6,7 +6,7 @@ export type DeviceBreakpoint = 'mobile' | 'tablet' | 'desktop'
 
 export type IconStyle = 'stroke' | 'solid' | 'duotone' | 'thin' | '3d' | 'regular' | 'bold' | 'light' | 'fill' | 'outline' | 'filled' | 'line' | 'sharp' | 'rounded' | 'color' | 'illustration'
 
-export type IconSource = 'Lucide' | 'Phosphor' | 'Tabler' | 'Heroicons' | 'Simple Icons' | 'Feather Icons' | 'Remix Icon' | 'Lineicons' | 'Material Symbols' | 'Fluent System Icons' | 'Carbon Icons' | 'Bootstrap Icons' | 'MingCute Icons' | 'Open Doodles' | 'Open Peeps' | 'Fluent Emoji' | 'Glass Icons' | 'Flowbite Illustrations' | 'Bioicons' | 'IRA Design'
+export type IconSource = 'Lucide' | 'Phosphor' | 'Tabler' | 'Heroicons' | 'Simple Icons' | 'Feather Icons' | 'Remix Icon' | 'Lineicons' | 'Material Symbols' | 'Fluent System Icons' | 'Carbon Icons' | 'Bootstrap Icons' | 'MingCute Icons' | 'Open Doodles' | 'Open Peeps' | 'Fluent Emoji' | 'Glass Icons' | 'Flowbite Illustrations' | 'Bioicons'
 
 export interface IconItem {
   id: string
