@@ -19,22 +19,109 @@
   --warning-subtle: #FEF08A;
   --danger-subtle: #FFF5F5;
 
-  /* Type hierarchy */
+  /* Extended brand, neutral, and semantic color tokens */
+  --violet-50: #F7F4FF;
+  --violet-100: #EDE9FE;
+  --violet-200: #DDD6FE;
+  --violet-300: #C4B5FD;
+  --violet-400: #A78BFA;
+  --violet-500: #8B5CF6;
+  --violet-600: #7141E8;
+  --violet-700: #6031D4;
+  --violet-800: #4E2CAF;
+  --violet-900: #3B1F82;
+
+  --secondary-accent: #2563EB;
+  --secondary-subtle: #EFF6FF;
+  --accent-emerald: #10B981;
+  --accent-amber: #D97706;
+  --accent-rose: #E11D48;
+  --accent-slate: #64748B;
+
+  --surface-elevated: #FFFFFF;
+  --surface-overlay: rgba(15, 17, 22, 0.56);
+  --line-subtle: #F0F0F3;
+  --line-strong: #D8D8DC;
+  --ink-secondary: #303038;
+  --ink-subtle: #71717A;
+
+  --info: #0369A1;
+  --warning: #854D0E;
+
+  /* Type hierarchy & scale */
   --font-ui: 'General Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', ui-monospace, Menlo, Monaco, Consolas, monospace;
+  --text-2xs: 0.6875rem;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 0.9375rem;
+  --text-md: 1rem;
   --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  --leading-none: 1;
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --tracking-tighter: -0.04em;
   --tracking-tight: -0.025em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.06em;
+
+  /* Spacing & sizing scale (4px base unit) */
+  --space-0: 0px;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-2-5: 0.625rem;
+  --space-3: 0.75rem;
+  --space-3-5: 0.875rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  --control-xs: 28px;
+  --control-sm: 36px;
+  --control-md: 40px;
+  --control-lg: 48px;
+  --touch-target: 44px;
 
   /* Shared shape, depth, and workspace dimensions */
+  --radius-xs: 6px;
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 20px;
+  --radius-xl: 24px;
   --radius-pill: 9999px;
-  --shadow-float: 0 10px 30px rgba(15, 17, 22, 0.10);
+
+  --shadow-2xs: 0 1px 2px rgba(15, 17, 22, 0.03);
   --shadow-subtle: 0 1px 3px rgba(15, 17, 22, 0.05);
+  --shadow-card: 0 4px 12px rgba(15, 17, 22, 0.06), 0 1px 2px rgba(15, 17, 22, 0.04);
+  --shadow-dropdown: 0 14px 34px -4px rgba(15, 17, 22, 0.12), 0 4px 12px -2px rgba(15, 17, 22, 0.06);
+  --shadow-float: 0 10px 30px rgba(15, 17, 22, 0.10);
   --shadow-panel: 0 14px 36px rgba(15, 17, 22, 0.14);
+  --shadow-modal: 0 24px 64px -12px rgba(15, 17, 22, 0.22), 0 8px 24px -4px rgba(15, 17, 22, 0.10);
+  --ring-focus: 0 0 0 3px color-mix(in srgb, var(--violet) 20%, transparent);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 140ms;
+  --duration-normal: 200ms;
+
   --announcement-height: 0px;
   --header-height: 64px;
   --rail-width: 72px;
@@ -61,7 +148,23 @@ html.dark {
   --info-subtle: #1D3543;
   --warning-subtle: #41351C;
   --danger-subtle: #3A2426;
-  --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.38);
+
+  --surface-elevated: #202228;
+  --surface-overlay: rgba(8, 9, 12, 0.72);
+  --line-subtle: #282A30;
+  --line-strong: #454852;
+  --ink-secondary: #D4D4D8;
+  --ink-subtle: #9E9EA9;
+
+  --info: #7DD3FC;
+  --warning: #FCD34D;
+
+  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.22);
   --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.28);
+  --shadow-card: 0 4px 14px rgba(0, 0, 0, 0.34), 0 1px 3px rgba(0, 0, 0, 0.24);
+  --shadow-dropdown: 0 16px 38px -4px rgba(0, 0, 0, 0.52), 0 6px 16px -2px rgba(0, 0, 0, 0.36);
+  --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.38);
   --shadow-panel: 0 14px 36px rgba(0, 0, 0, 0.48);
+  --shadow-modal: 0 28px 72px -12px rgba(0, 0, 0, 0.68), 0 10px 28px -4px rgba(0, 0, 0, 0.48);
+  --ring-focus: 0 0 0 3px color-mix(in srgb, var(--violet) 28%, transparent);
 }

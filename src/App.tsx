@@ -5,8 +5,6 @@ import { LeftNavRail } from "./components/layout/LeftNavRail";
 import { MainWorkspace } from "./components/layout/MainWorkspace";
 import { RightSidebar } from "./components/layout/RightSidebar";
 import { MobileTopBar } from "./components/layout/MobileTopBar";
-import { MobileDrawer } from "./components/layout/MobileDrawer";
-import { CompareTray } from "./components/workspace/CompareTray";
 import { useBreakpoint } from "./hooks/useBreakpoint";
 import { useShellState } from "./hooks/useShellState";
 import { useIconFilters } from "./hooks/useIconFilters";
@@ -16,6 +14,8 @@ import type { RightSidebarPanel, IconItem } from "./types";
 import { cn } from "./utils/cn";
 import { AnalyticsConsent } from "./components/common/AnalyticsConsent";
 
+const MobileDrawer = lazy(() => import("./components/layout/MobileDrawer").then((module) => ({ default: module.MobileDrawer })));
+const CompareTray = lazy(() => import("./components/workspace/CompareTray").then((module) => ({ default: module.CompareTray })));
 const CompareModal = lazy(() => import("./components/workspace/CompareModal").then((module) => ({ default: module.CompareModal })));
 const IconDetailModal = lazy(() => import("./components/detail/IconDetailModal").then((module) => ({ default: module.IconDetailModal })));
 
@@ -35,6 +35,7 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
   const {
     filters,
     filteredIcons,
+    isCatalogLoading,
     totalCount,
     catalogCount,
     sourceCounts,
@@ -78,6 +79,7 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
       ...collections.flatMap((collection) => collection.iconIds),
       ...(detailIconId ? [detailIconId] : []),
     ]);
+    if (requiredIds.size === 0) return;
     const requiredIcons = getIconCatalogItems(requiredIds).filter((icon) => !icon.svg);
     if (requiredIcons.length) {
       void loadIconSvgsFor(requiredIcons)
@@ -183,7 +185,7 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
         )}
         {/* 4. Main Workspace Area */}
         <MainWorkspace
-          isLoading={!catalogReady}
+          isLoading={isCatalogLoading}
           icons={filteredIcons}
           totalCount={totalCount}
           onSelectColor={setActiveColor}
@@ -194,6 +196,9 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
           onSelectCategory={setCategory}
           onSelectTopic={setTopic}
           topicCounts={topicCounts}
+          sourceCounts={sourceCounts}
+          selectedSources={filters.selectedSources}
+          onToggleSource={toggleSource}
           activeSort={filters.sort}
           onSelectSort={setSort}
           activePackId={filters.activePackId}
@@ -255,7 +260,7 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
       </div>
 
       {/* On Tablet & Mobile: Right Contextual Sidebar as an Overlay Drawer */}
-      {(isTablet || isMobile) && (
+      {(isTablet || isMobile) && state.isRightSidebarOpen && (
         <RightSidebar
           isOpen={state.isRightSidebarOpen}
           onClose={handleCloseSidebar}
@@ -291,21 +296,29 @@ export default function App({ theme, onThemeChange, catalogReady }: { theme: 'li
         />
       )}
 
-      <MobileDrawer
-        isOpen={state.isMobileDrawerOpen}
-        onClose={() => setMobileDrawerOpen(false)}
-        activeNavId={state.activeRailTab}
-        onSelectNav={handleMobileNavigation}
-      />
+      {state.isMobileDrawerOpen && (
+        <Suspense fallback={null}>
+          <MobileDrawer
+            isOpen={state.isMobileDrawerOpen}
+            onClose={() => setMobileDrawerOpen(false)}
+            activeNavId={state.activeRailTab}
+            onSelectNav={handleMobileNavigation}
+          />
+        </Suspense>
+      )}
 
       {/* Bottom Floating Comparison Tray (Appears when >= 2 icons are selected) */}
-      <CompareTray
-        compareIconIds={compareIconIds}
-        onRemoveCompare={toggleCompare}
-        onClearCompare={clearCompare}
-        onOpenCompareModal={() => setIsCompareModalOpen(true)}
-        activeColor={themedActiveColor}
-      />
+      {compareIconIds.length >= 2 && (
+        <Suspense fallback={null}>
+          <CompareTray
+            compareIconIds={compareIconIds}
+            onRemoveCompare={toggleCompare}
+            onClearCompare={clearCompare}
+            onOpenCompareModal={() => setIsCompareModalOpen(true)}
+            activeColor={themedActiveColor}
+          />
+        </Suspense>
+      )}
 
       {/* Side-by-Side Comparison Preview Modal */}
       {isCompareModalOpen && (

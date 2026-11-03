@@ -21,6 +21,9 @@
     <meta name="apple-mobile-web-app-title" content="IconMuse" />
     <link rel="manifest" href="/site.webmanifest" />
 
+    <!-- Preload initial boot catalog in parallel with JS bundle to eliminate network waterfall -->
+    <link rel="preload" href="/icon-catalog-boot.json" as="fetch" crossorigin />
+
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="IconMuse" />
     <meta property="og:title" content="IconMuse — Search Free SVG Icons & Illustrations" />

@@ -1,7 +1,7 @@
 import React from 'react'
 import type { SVGProps } from 'react'
 import type { IconItem } from '../types'
-import { syncIconPacks } from './iconPacks'
+import { applyPrecomputedPackCounts } from './iconPacks'
 
 function componentFor(svg: string): React.ComponentType<SVGProps<SVGSVGElement>> {
   const attr = (name: string) => svg.match(new RegExp(`\\b${name}="([^"]+)"`))?.[1]
@@ -19,29 +19,99 @@ function componentFor(svg: string): React.ComponentType<SVGProps<SVGSVGElement>>
   return Icon
 }
 
-type CatalogMetadata = Omit<IconItem, 'component' | 'svg'> & { svgShard: string }
+const EmptyCatalogIcon: React.ComponentType<SVGProps<SVGSVGElement>> = () => null
+
+function attachLazyComponent(item: IconItem) {
+  let cachedSvg = ''
+  let cachedComponent: IconItem['component'] = EmptyCatalogIcon as IconItem['component']
+  Object.defineProperty(item, 'component', {
+    configurable: true,
+    enumerable: true,
+    get() {
+      if (!item.svg) return EmptyCatalogIcon as IconItem['component']
+      if (cachedSvg !== item.svg) {
+        cachedSvg = item.svg
+        cachedComponent = componentFor(item.svg) as IconItem['component']
+      }
+      return cachedComponent
+    },
+    set(value: IconItem['component']) {
+      cachedSvg = item.svg
+      cachedComponent = value
+    },
+  })
+}
+
+type CatalogMetadata = Omit<IconItem, 'component' | 'svg'> & { svgShard: string; svg?: string }
 type CatalogManifest = {
   version: string
   count: number
   metadataFile: string
-  shards: { file: string; source: string; count: number }[]
+  sourceCounts?: Record<string, number>
+  licenseCounts?: Record<string, number>
+  topicCounts?: Record<string, number>
+  packCounts?: Record<string, number>
+  shards?: { file: string; source: string; count: number }[]
+}
+type CatalogBootPayload = CatalogManifest & {
+  initialIcons: (CatalogMetadata & { svg: string })[]
 }
 
-const EmptyCatalogIcon: React.ComponentType<SVGProps<SVGSVGElement>> = () => null
+export interface CatalogSummary {
+  totalCount: number
+  sourceCounts: Record<string, number> | null
+  licenseCounts: Record<string, number> | null
+  topicCounts: Record<string, number> | null
+  packCounts: Record<string, number> | null
+  isFullCatalogLoaded: boolean
+}
 
-function catalogItemFor(metadata: CatalogMetadata): IconItem {
-  // Use one placeholder component until the item's shard arrives. Creating a
-  // closure for every catalog entry was expensive at startup (over 63k funcs).
-  return { ...metadata, svg: '', component: EmptyCatalogIcon as IconItem['component'] }
+export const CATALOG_SUMMARY: CatalogSummary = {
+  totalCount: 0,
+  sourceCounts: null,
+  licenseCounts: null,
+  topicCounts: null,
+  packCounts: null,
+  isFullCatalogLoaded: false,
 }
 
 export const ICON_CATALOG: IconItem[] = []
 
+let bootPromise: Promise<void> | null = null
 let loadPromise: Promise<void> | null = null
 let catalogManifest: CatalogManifest | null = null
 const iconsById = new Map<string, IconItem>()
 const loadedSvgShards = new Set<string>()
 const svgShardPromises = new Map<string, Promise<void>>()
+const catalogSubscribers = new Set<() => void>()
+
+export function subscribeCatalogUpdates(listener: () => void) {
+  catalogSubscribers.add(listener)
+  return () => {
+    catalogSubscribers.delete(listener)
+  }
+}
+
+function notifyCatalogSubscribers() {
+  for (const listener of catalogSubscribers) {
+    listener()
+  }
+}
+
+function applyManifestCounts(manifest: CatalogManifest) {
+  CATALOG_SUMMARY.totalCount = manifest.count
+  if (manifest.sourceCounts) CATALOG_SUMMARY.sourceCounts = manifest.sourceCounts
+  if (manifest.licenseCounts) CATALOG_SUMMARY.licenseCounts = manifest.licenseCounts
+  if (manifest.topicCounts) CATALOG_SUMMARY.topicCounts = manifest.topicCounts
+  if (manifest.packCounts) {
+    CATALOG_SUMMARY.packCounts = manifest.packCounts
+    applyPrecomputedPackCounts(manifest.packCounts)
+  }
+}
+
+export function hasIconCatalogItem(id: string): boolean {
+  return iconsById.has(id)
+}
 
 export function getIconCatalogItems(ids: Iterable<string>) {
   const items: IconItem[] = []
@@ -61,15 +131,53 @@ async function readCompressedJson<T>(file: string): Promise<T> {
   return await new Response(decompressed).json() as T
 }
 
+/**
+ * Fast-path initial boot loader: fetches the lightweight pre-rendered initial 72
+ * icons + precomputed counts (~5 KB gzipped) so the initial viewport renders
+ * immediately without waiting for the full metadata catalog.
+ */
+export function loadInitialIconCatalog() {
+  if (CATALOG_SUMMARY.isFullCatalogLoaded) return Promise.resolve()
+  if (bootPromise) return bootPromise
+
+  bootPromise = fetch('/icon-catalog-boot.json')
+    .then(async (response) => {
+      if (!response.ok) throw new Error(`Boot catalog failed (${response.status})`)
+      const boot = await response.json() as CatalogBootPayload
+      if (!boot.metadataFile || !Array.isArray(boot.initialIcons)) {
+        throw new Error('Boot catalog payload is incomplete')
+      }
+      catalogManifest = boot
+      applyManifestCounts(boot)
+      if (!CATALOG_SUMMARY.isFullCatalogLoaded && ICON_CATALOG.length === 0) {
+        for (let i = 0; i < boot.initialIcons.length; i++) {
+          const item = boot.initialIcons[i] as unknown as IconItem
+          attachLazyComponent(item)
+          ICON_CATALOG.push(item)
+          iconsById.set(item.id, item)
+        }
+      }
+    })
+    .catch(() => {
+      bootPromise = null
+      return loadIconCatalog()
+    })
+
+  return bootPromise
+}
+
 export function loadIconCatalog() {
   if (loadPromise) return loadPromise
   const readCatalog = async () => {
-    const manifestResponse = await fetch('/icon-catalog-manifest.json', { cache: 'no-cache' })
-    if (!manifestResponse.ok) throw new Error(`Icon catalog manifest failed (${manifestResponse.status})`)
-    catalogManifest = await manifestResponse.json() as CatalogManifest
-    if (!catalogManifest.metadataFile || !Array.isArray(catalogManifest.shards)) {
+    if (!catalogManifest) {
+      const manifestResponse = await fetch('/icon-catalog-manifest.json', { cache: 'no-cache' })
+      if (!manifestResponse.ok) throw new Error(`Icon catalog manifest failed (${manifestResponse.status})`)
+      catalogManifest = await manifestResponse.json() as CatalogManifest
+    }
+    if (!catalogManifest.metadataFile) {
       throw new Error('Icon catalog manifest is incomplete')
     }
+    applyManifestCounts(catalogManifest)
     const metadata = await readCompressedJson<CatalogMetadata[]>(catalogManifest.metadataFile)
     if (metadata.length !== catalogManifest.count) {
       throw new Error(`Icon catalog metadata is incomplete (${metadata.length} of ${catalogManifest.count})`)
@@ -79,9 +187,26 @@ export function loadIconCatalog() {
 
   loadPromise = readCatalog()
     .then((metadata) => {
-      ICON_CATALOG.push(...metadata.map(catalogItemFor))
-      ICON_CATALOG.forEach((icon) => iconsById.set(icon.id, icon))
-      syncIconPacks(ICON_CATALOG)
+      // Mutate parsed metadata records in-place and preserve any SVGs already
+      // hydrated during initial boot so we avoid 63k object spreads & GC pauses.
+      const fullItems = metadata as unknown as IconItem[]
+      for (let i = 0; i < fullItems.length; i++) {
+        const record = fullItems[i]
+        const existing = iconsById.get(record.id)
+        if (existing && existing.svg) {
+          fullItems[i] = existing
+        } else {
+          record.svg = ''
+          attachLazyComponent(record)
+          iconsById.set(record.id, record)
+        }
+      }
+      ICON_CATALOG.length = 0
+      for (let i = 0; i < fullItems.length; i += 8192) {
+        ICON_CATALOG.push(...fullItems.slice(i, i + 8192))
+      }
+      CATALOG_SUMMARY.isFullCatalogLoaded = true
+      notifyCatalogSubscribers()
     })
     .catch((error) => {
       loadPromise = null
@@ -91,24 +216,25 @@ export function loadIconCatalog() {
 }
 
 /** Load only the compressed SVG shards required by the supplied icons. */
-export async function loadIconSvgsFor(icons: readonly IconItem[]) {
-  await loadIconCatalog()
+export async function loadIconSvgsFor(icons: readonly IconItem[], onShardLoaded?: () => void) {
   const needed = new Set<string>()
   for (const icon of icons) {
     const shard = icon.svgShard
     if (shard && !icon.svg && !loadedSvgShards.has(shard)) needed.add(shard)
   }
+  if (needed.size === 0) return
 
   await Promise.all([...needed].map((file) => {
     const pending = svgShardPromises.get(file)
-    if (pending) return pending
+    if (pending) {
+      return onShardLoaded ? pending.then(onShardLoaded) : pending
+    }
     const request = readCompressedJson<Record<string, string>>(file)
       .then((svgById) => {
         for (const [id, svg] of Object.entries(svgById)) {
           const icon = iconsById.get(id)
-          if (icon) {
+          if (icon && !icon.svg) {
             icon.svg = svg
-            icon.component = componentFor(svg) as IconItem['component']
           }
         }
         loadedSvgShards.add(file)
@@ -118,7 +244,7 @@ export async function loadIconSvgsFor(icons: readonly IconItem[]) {
         throw error
       })
     svgShardPromises.set(file, request)
-    return request
+    return onShardLoaded ? request.then(onShardLoaded) : request
   }))
 }
 

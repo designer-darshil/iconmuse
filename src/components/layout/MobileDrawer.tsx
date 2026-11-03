@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ExternalLink, X } from "lucide-react";
+import { ExternalLink, Layers, X } from "lucide-react";
 import type { MobileDrawerProps } from "../../types";
 import { BrandLogo } from "../common/BrandLogo";
 import { useOverlayScrollLock } from "../../hooks/useOverlayScrollLock";
@@ -118,7 +118,14 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
               })}
             </nav>
 
-            <footer className="mt-auto flex items-center justify-end border-t border-[#E7E7EA] px-4 py-3 text-xs text-[#6B6B73]">
+            <footer className="mt-auto flex items-center justify-between border-t border-[#E7E7EA] px-4 py-3 text-xs text-[#6B6B73]">
+              <a
+                href="/design-system"
+                className="flex min-h-[44px] items-center gap-2 font-semibold text-[#0F1116] no-underline hover:text-[#7141E8]"
+              >
+                <Layers className="h-3.5 w-3.5 text-[#7141E8]" aria-hidden="true" />
+                Design System
+              </a>
               <a href="https://github.com" target="_blank" rel="noreferrer" className="flex min-h-[44px] items-center gap-2 hover:text-[#0F1116]">
                 GitHub
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />

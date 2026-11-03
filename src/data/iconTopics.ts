@@ -6,9 +6,23 @@ export interface IconTopic {
   matches: (icon: IconItem) => boolean
 }
 
+const wordSetCache = new WeakMap<IconItem, Set<string>>()
+
+function getIconWords(icon: IconItem): Set<string> {
+  let set = wordSetCache.get(icon)
+  if (!set) {
+    set = new Set(icon.tags)
+    for (const part of icon.name.toLowerCase().split(/[^a-z0-9]+/)) {
+      if (part) set.add(part)
+    }
+    wordSetCache.set(icon, set)
+  }
+  return set
+}
+
 const hasTerm = (icon: IconItem, terms: string[]) => {
-  const words = `${icon.name} ${icon.tags.join(' ')}`.toLowerCase().replace(/[^a-z0-9]+/g, ' ')
-  return terms.some((term) => (` ${words} `).includes(` ${term} `))
+  const words = getIconWords(icon)
+  return terms.some((term) => words.has(term))
 }
 
 export const ICON_TOPICS: IconTopic[] = [
@@ -28,7 +42,10 @@ export const ICON_TOPICS: IconTopic[] = [
   { id: 'files', label: 'Files & folders', matches: (icon) => hasTerm(icon, ['file', 'folder', 'document', 'archive', 'attachment', 'paperclip', 'download', 'upload']) },
 ]
 
-export function getIconTopicCounts(icons: IconItem[]) {
+export function getIconTopicCounts(icons: IconItem[], precomputed?: Record<string, number> | null) {
+  if (precomputed && Object.keys(precomputed).length > 0) {
+    return precomputed
+  }
   const iconItems = icons.filter((icon) => icon.category === 'Icons')
   return Object.fromEntries([
     ['all', iconItems.length],

@@ -65,16 +65,41 @@ export const ICON_PACKS: IconPack[] = [
   },
 ]
 
-export function syncIconPacks(icons: Array<{ id: string; name: string; tags: string[] }>) {
-  ICON_PACKS.forEach((pack) => {
-    const terms = pack.matchTerms.map((term) => term.toLowerCase())
+let syncedCatalogLength = 0
+
+export function applyPrecomputedPackCounts(packCounts?: Record<string, number> | null) {
+  if (!packCounts) return
+  for (const pack of ICON_PACKS) {
+    if (typeof packCounts[pack.id] === 'number') {
+      pack.count = packCounts[pack.id]
+    }
+  }
+}
+
+export function matchesIconPack(icon: { name: string; tags: string[] }, pack: IconPack): boolean {
+  const lowerName = icon.name.toLowerCase()
+  const tags = icon.tags
+  return pack.matchTerms.some((term) => lowerName.includes(term) || tags.some((tag) => tag.includes(term)))
+}
+
+export function syncIconPacks(icons: Array<{ id: string; name: string; tags: string[] }>, packId?: string) {
+  if (packId) {
+    const target = ICON_PACKS.find((p) => p.id === packId)
+    if (!target || (target.iconIds.length > 0 && syncedCatalogLength === icons.length)) return
     const matches: string[] = []
     for (const icon of icons) {
-      const name = icon.name.toLowerCase()
-      const tags = icon.tags
-      if (terms.some((term) => name.includes(term) || tags.some((tag) => tag.includes(term)))) {
-        matches.push(icon.id)
-      }
+      if (matchesIconPack(icon, target)) matches.push(icon.id)
+    }
+    target.iconIds = matches
+    target.count = matches.length
+    return
+  }
+
+  syncedCatalogLength = icons.length
+  ICON_PACKS.forEach((pack) => {
+    const matches: string[] = []
+    for (const icon of icons) {
+      if (matchesIconPack(icon, pack)) matches.push(icon.id)
     }
     pack.iconIds = matches
     pack.count = pack.iconIds.length

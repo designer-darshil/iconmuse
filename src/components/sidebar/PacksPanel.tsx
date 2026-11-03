@@ -18,14 +18,9 @@ export const PacksPanel: React.FC<PacksPanelProps> = ({
   return (
     <div className="p-4 flex flex-col gap-4 select-none bg-white">
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-[#0F1116] m-0">
-            Browse packs
-          </h3>
-          <p className="text-[11px] text-[#8E8E93] mt-0.5">
-            {packs.length} focused sets for common workflows
-          </p>
-        </div>
+        <h3 className="text-sm font-semibold text-[#0F1116] m-0">
+          Packs
+        </h3>
 
         {activePackId && (
           <button

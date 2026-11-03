@@ -13,7 +13,27 @@ npm install
 npm run dev
 ```
 
+Run checks and verification:
+
+```sh
+npm run lint         # Run OxLint checks
+npm run typecheck    # Check TypeScript types
+npm run contrast:check # Check WCAG color contrast
+npm run check        # Run linter, typecheck, and contrast checks together
+```
+
 Create a production build with `npm run build` and preview it with `npm run preview`.
+
+### Figma plugin & API
+
+The repository also includes the Figma plugin and its Cloudflare Worker backend in `figma-plugin/`:
+
+```sh
+npm run figma:data           # Generate Worker static data from catalog
+npm run figma:build          # Build the Figma plugin UI and sandbox code
+npm run figma:worker:dev     # Start the local Cloudflare Worker API
+npm run figma:worker:deploy  # Deploy the Worker API
+```
 
 ## Icon catalog
 

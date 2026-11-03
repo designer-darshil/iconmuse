@@ -22,6 +22,9 @@ export interface MainWorkspaceFullProps extends MainWorkspaceProps {
   onSelectCategory: (category: string) => void;
   onSelectTopic: (topic: string | null) => void;
   topicCounts: Record<string, number>;
+  sourceCounts: Record<string, number>;
+  selectedSources: string[];
+  onToggleSource: (source: string) => void;
   activeSort: SortOption;
   onSelectSort: (sort: SortOption) => void;
   activePackId: string | null;
@@ -47,6 +50,9 @@ export const MainWorkspace: React.FC<MainWorkspaceFullProps> = ({
   onSelectCategory,
   onSelectTopic,
   topicCounts,
+  sourceCounts,
+  selectedSources,
+  onToggleSource,
   activeSort,
   onSelectSort,
   activePackId,
@@ -83,6 +89,9 @@ export const MainWorkspace: React.FC<MainWorkspaceFullProps> = ({
         onSelectCategory={onSelectCategory}
         onSelectTopic={onSelectTopic}
         topicCounts={topicCounts}
+        sourceCounts={sourceCounts}
+        selectedSources={selectedSources}
+        onToggleSource={onToggleSource}
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
         activeColor={activeColor}
@@ -102,10 +111,10 @@ export const MainWorkspace: React.FC<MainWorkspaceFullProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-[#0F1116]">
-                  Pack: {activePack.title}
+                  {activePack.title}
                 </span>
                 <span className="text-[10px] font-mono text-[#7141E8] bg-[#7141E8]/10 px-1.5 py-0.2 rounded-full font-semibold">
-                  {icons.length} glyphs
+                  {icons.length.toLocaleString()} icons
                 </span>
               </div>
               <p className="text-[11px] text-[#8E8E93] m-0">
@@ -143,6 +152,7 @@ export const MainWorkspace: React.FC<MainWorkspaceFullProps> = ({
         <IconGrid
           isLoading={isLoading}
           icons={icons}
+          totalCount={totalCount}
           activeSort={activeSort}
           searchQuery={searchQuery}
           activeColor={activeColor}

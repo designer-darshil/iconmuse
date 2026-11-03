@@ -1,5 +1,4 @@
 import React, { lazy, Suspense } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   X,
   SlidersHorizontal,
@@ -59,14 +58,13 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   packs,
 }) => {
   useOverlayScrollLock(isOverlay && isOpen);
-  const shouldReduceMotion = useReducedMotion();
 
   const panelTitles: Record<RightSidebarPanel, string> = {
-    filters: "Filters & Customization",
-    packs: "Curated Icon Packs",
-    saved: "Saved Favorites",
-    extensions: "Icon Libraries",
-    help: "Help & Docs",
+    filters: "Filters",
+    packs: "Packs",
+    saved: "Saved",
+    extensions: "Libraries",
+    help: "Help",
   };
 
   const renderPanelContent = () => {
@@ -222,65 +220,34 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
     </div>
   );
 
-  // Horizontal slide + fade animation variant
-  const slideVariants = {
-    initial: { opacity: 0, x: shouldReduceMotion ? 0 : 12 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: shouldReduceMotion ? 0 : -12 },
-  };
-
   // Overlay Mode (Tablet / Mobile)
   if (isOverlay) {
+    if (!isOpen) return null;
     return (
-      <AnimatePresence>
-        {isOpen && (
-        <div className="mobile-sidebar-overlay fixed inset-0 z-50 flex justify-end">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.16 }}
-              onClick={onClose}
-              className="fixed inset-0 bg-[#0F1116]/30 backdrop-blur-xs"
-              aria-hidden="true"
-            />
+      <div className="mobile-sidebar-overlay fixed inset-0 z-50 flex justify-end">
+        <div
+          onClick={onClose}
+          className="fixed inset-0 bg-[#0F1116]/30 backdrop-blur-xs transition-opacity duration-150"
+          aria-hidden="true"
+        />
 
-            <motion.aside
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{
-                duration: shouldReduceMotion ? 0 : 0.22,
-                ease: "easeOut",
-              }}
-              className={cn(
-                "relative z-10 w-full max-w-[360px] h-full bg-white border-l border-[#E7E7EA] shadow-2xl flex flex-col",
-                isMobile && "mobile-sidebar-drawer",
-              )}
-              aria-label="Contextual Right Panel"
-            >
-              {sidebarHeader}
-              {sectionTabs}
+        <aside
+          className={cn(
+            "relative z-10 w-full max-w-[360px] h-full bg-white border-l border-[#E7E7EA] shadow-2xl flex flex-col",
+            isMobile && "mobile-sidebar-drawer",
+          )}
+          aria-label="Contextual Right Panel"
+        >
+          {sidebarHeader}
+          {sectionTabs}
 
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activePanel}
-                    className="min-h-full"
-                    variants={slideVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    transition={{ duration: 0.15, ease: "easeOut" }}
-                  >
-                    {renderPanelContent()}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </motion.aside>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div key={activePanel} className="min-h-full">
+              {renderPanelContent()}
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </aside>
+      </div>
     );
   }
 
@@ -300,19 +267,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       {sectionTabs}
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activePanel}
-            className="min-h-full"
-            variants={slideVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={{ duration: 0.15, ease: "easeOut" }}
-          >
-            {renderPanelContent()}
-          </motion.div>
-        </AnimatePresence>
+        <div key={activePanel} className="min-h-full">
+          {renderPanelContent()}
+        </div>
       </div>
     </aside>
   );

@@ -33,6 +33,7 @@ function words(value: string) {
 }
 
 interface SearchIndex {
+  count: number
   allWords: Map<string, number[]>
   nameWords: Map<string, number[]>
   allVocabulary: string[]
@@ -45,7 +46,7 @@ let lastQueryTerms: string[][] = []
 
 function searchIndex(icons: IconItem[]): SearchIndex {
   const cached = searchIndexes.get(icons)
-  if (cached) return cached
+  if (cached && cached.count === icons.length) return cached
 
   const allWords = new Map<string, number[]>()
   const nameWords = new Map<string, number[]>()
@@ -71,6 +72,7 @@ function searchIndex(icons: IconItem[]): SearchIndex {
   })
 
   const index = {
+    count: icons.length,
     allWords,
     nameWords,
     allVocabulary: [...allWords.keys()],

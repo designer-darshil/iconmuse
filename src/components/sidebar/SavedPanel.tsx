@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   BookmarkX,
   Trash2,
-  Sparkles,
   Plus,
   Check,
   FolderHeart,
@@ -243,16 +242,10 @@ export const SavedPanel: React.FC<SavedPanelProps> = ({
 
       {visibleIcons.length === 0 ? (
         <div className="py-7 flex flex-col items-center text-center">
-          <Sparkles className="w-5 h-5 text-[#7141E8] mb-2" />
           <p className="text-xs font-medium text-[#45454C] m-0">
             {activeCollection
-              ? "This collection is empty"
-              : "No saved icons yet"}
-          </p>
-          <p className="text-[11px] text-[#85858D] mt-1 mb-0">
-            {activeCollection
-              ? "Add saved icons below."
-              : "Bookmark an icon to keep it here."}
+              ? "No icons in this collection"
+              : "No saved icons"}
           </p>
         </div>
       ) : (

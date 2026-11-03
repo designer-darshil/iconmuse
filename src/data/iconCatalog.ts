@@ -1,1 +1,11 @@
-export { ICON_CATALOG, getIconCatalogItems, getIconSvg, loadIconCatalog, loadIconSvgsFor } from './iconCatalogView'
+export {
+  CATALOG_SUMMARY,
+  ICON_CATALOG,
+  getIconCatalogItems,
+  getIconSvg,
+  hasIconCatalogItem,
+  loadIconCatalog,
+  loadIconSvgsFor,
+  loadInitialIconCatalog,
+  subscribeCatalogUpdates,
+} from './iconCatalogView'

@@ -20,12 +20,9 @@ export const AppLoader: React.FC = () => (
       <div className="app-loader__panel">
         <div className="app-loader__eyebrow">
           <span className="app-loader__pulse" aria-hidden="true" />
-          Loading catalog
+          Loading
         </div>
-        <h1>Gathering your library.</h1>
-        <p>
-          Preparing icons and illustrations from the sources you use.
-        </p>
+        <h1>Loading icons…</h1>
         <div className="app-loader__track" aria-hidden="true">
           <span className="app-loader__bar" />
         </div>

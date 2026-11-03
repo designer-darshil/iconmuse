@@ -8,8 +8,14 @@
     "contrast:check": "node scripts/check-contrast.mjs",
     "dev": "vite --host --port 5174",
     "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "check": "oxlint && tsc -b && node scripts/check-contrast.mjs",
+    "preview": "vite preview",
+    "figma:data": "node figma-plugin/scripts/build-worker-data.mjs",
+    "figma:build": "vite build --config figma-plugin/vite.config.ts --mode plugin-ui && vite build --config figma-plugin/vite.config.ts --mode plugin-code",
+    "figma:worker:dev": "wrangler dev --config figma-plugin/worker/wrangler.toml",
+    "figma:worker:deploy": "wrangler deploy --config figma-plugin/worker/wrangler.toml"
   },
   "dependencies": {
     "@dicebear/core": "^9.4.3",

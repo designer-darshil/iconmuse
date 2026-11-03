@@ -11,7 +11,6 @@ import {
   RotateCw,
   FlipHorizontal,
   FlipVertical,
-  Sparkles,
   Shield,
   Search,
   Code2,
@@ -21,6 +20,7 @@ import type { IconItem } from "../../types";
 import { cn } from "../../utils/cn";
 import { copyToClipboard } from "../../utils/copyToClipboard";
 import { useOverlayScrollLock } from "../../hooks/useOverlayScrollLock";
+import { DropdownSelect, DropdownItem, DropdownSectionLabel } from "../ui/dropdown";
 
 export interface IconDetailModalProps {
   isDark?: boolean;
@@ -543,7 +543,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
               duration: shouldReduceMotion ? 0 : 0.18,
               ease: "easeOut",
             }}
-            className="mobile-illustration-window relative flex h-[100dvh] w-full max-w-[1680px] flex-col overflow-hidden bg-white font-sans shadow-2xl md:h-[90vh] md:rounded-[16px] md:border md:border-[#E7E7EA]"
+            className="mobile-illustration-window relative flex h-[100dvh] w-full max-w-[1680px] flex-col overflow-hidden bg-white font-sans shadow-[var(--shadow-modal)] md:h-[90vh] md:rounded-[20px] md:border md:border-[#E7E7EA]"
           >
             <header className="z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-[#E7E7EA] bg-white px-5">
               <nav className="flex min-w-0 items-center gap-1.5 overflow-x-auto text-xs font-medium text-[#8E8E93] no-scrollbar" aria-label="Breadcrumb">
@@ -608,15 +608,9 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
 
               <aside className="illustration-detail-controls flex flex-col gap-5 border-t border-[#E7E7EA] bg-white p-5 font-sans lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
                 <section className="space-y-3">
-                  <div>
-                    <h2 className="m-0 text-sm font-semibold text-[#0F1116]">
-                      Artwork details
-                    </h2>
-                    <p className="mb-0 mt-1.5 text-[13px] leading-relaxed text-[#777780]">
-                      The preview opens at the illustration’s original viewBox
-                      size. Scroll the canvas to inspect every detail.
-                    </p>
-                  </div>
+                  <h2 className="m-0 text-sm font-semibold text-[#0F1116]">
+                    Details
+                  </h2>
                   <div className="flex flex-wrap gap-1.5">
                     {[icon.source, icon.license, icon.category].map((label) => (
                       <span
@@ -928,7 +922,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
             duration: shouldReduceMotion ? 0 : 0.18,
             ease: "easeOut",
           }}
-          className="mobile-icon-detail-window relative z-10 w-full max-w-[1680px] h-[100dvh] md:h-[90vh] bg-white md:rounded-[16px] shadow-2xl border border-[#E7E7EA] overflow-hidden flex flex-col"
+          className="mobile-icon-detail-window relative z-10 w-full max-w-[1680px] h-[100dvh] md:h-[90vh] bg-white md:rounded-[20px] shadow-[var(--shadow-modal)] border border-[#E7E7EA] overflow-hidden flex flex-col"
         >
           {/* Top Bar for Mobile & Desktop Close */}
           <div className="h-14 px-5 border-b border-[#E7E7EA] flex items-center justify-between bg-white shrink-0 sticky top-0 z-30">
@@ -978,9 +972,7 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
             <div className="mobile-icon-customize-panel order-3 lg:order-none border-b lg:border-b-0 lg:border-r border-[#E7E7EA] bg-white overflow-visible lg:overflow-y-auto p-4 sm:p-5 flex flex-col gap-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F1116] m-0">
-                  {isIllustration
-                    ? "Customize Illustration"
-                    : "Customize Glyph"}
+                  Customize
                 </h3>
                 <button
                   type="button"
@@ -1562,11 +1554,8 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
             <div className="mobile-icon-export-panel order-2 lg:order-none border-t lg:border-t-0 lg:border-l border-[#E7E7EA] bg-white overflow-visible lg:overflow-y-auto p-4 sm:p-5 flex flex-col gap-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F1116] m-0">
-                  Export Settings
+                  Export
                 </h3>
-                <span className="text-[10px] font-mono text-[#2EA45B] bg-[#2EA45B]/10 px-2 py-0.5 rounded-full font-bold">
-                  Vector Ready
-                </span>
               </div>
 
               <div ref={exportActionsRef} className="flex w-full flex-wrap items-center gap-2">
@@ -1603,52 +1592,55 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                   <span className="truncate">Download SVG</span>
                 </button>
                 {isSvgSplitOpen && (
-                  <div className="flex w-full overflow-hidden rounded-[11px] border border-[#E7E7EA] bg-white">
-                    <button
-                      type="button"
-                      onClick={handleCopyJsx}
-                      className="flex min-h-10 flex-1 items-center justify-center gap-1.5 px-3 text-xs font-medium text-[#0F1116] hover:bg-[#F7F7F8]"
-                    >
-                      <Code2 className="h-3.5 w-3.5 text-[#7141E8]" />
-                      Copy React JSX
-                    </button>
-                    <button
-                      type="button"
+                  <div
+                    role="menu"
+                    aria-label="Copy code format"
+                    className="w-full rounded-[14px] border border-[#E7E7EA] bg-white p-1.5 shadow-[var(--shadow-dropdown)]"
+                  >
+                    <DropdownSectionLabel>Copy Format</DropdownSectionLabel>
+                    <DropdownItem
+                      icon={<Copy className="h-3.5 w-3.5 text-[#7141E8]" />}
+                      description="Inline vector markup with custom attributes"
+                      meta={<span className="font-mono text-[10px]">&lt;svg&gt;</span>}
                       onClick={handleCopySvg}
-                      className="flex min-h-10 flex-1 items-center justify-center gap-1.5 border-l border-[#E7E7EA] px-3 text-xs font-medium text-[#0F1116] hover:bg-[#F7F7F8]"
                     >
-                      <Copy className="h-3.5 w-3.5 text-[#8E8E93]" />
-                      Copy Raw SVG
-                    </button>
+                      Copy SVG Markup
+                    </DropdownItem>
+                    <DropdownItem
+                      icon={<Code2 className="h-3.5 w-3.5 text-[#7141E8]" />}
+                      description="Ready-to-use React component snippet"
+                      meta={<span className="font-mono text-[10px]">JSX</span>}
+                      onClick={handleCopyJsx}
+                    >
+                      Copy React JSX
+                    </DropdownItem>
                   </div>
                 )}
               </div>
-              <p className="-mt-3 text-[10px] leading-relaxed text-[#85858D]">
-                SVG exports include this icon’s source and license metadata.
-              </p>
 
               {/* PNG Format Control & Size Dropdown */}
               <div className="flex flex-col gap-2 p-3.5 rounded-[14px] bg-[#F7F7F8] border border-[#E7E7EA]">
                 <div className="flex items-center justify-between text-xs font-bold text-[#0F1116]">
-                  <label htmlFor="png-scale-select">Raster PNG Format</label>
-                  <span className="text-[10px] text-[#8E8E93] font-mono">
-                    Lossless
-                  </span>
+                  <label htmlFor="png-scale-select">PNG Export</label>
+                  <span className="font-mono text-[10px] font-medium text-[#8E8E93]">Raster</span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <select
+                  <DropdownSelect
                     id="png-scale-select"
+                    ariaLabel="PNG export resolution"
                     value={pngScale}
-                    onChange={(e) => setPngScale(e.target.value)}
-                    className="flex-1 h-9 px-3 rounded-[10px] bg-white border border-[#E7E7EA] text-xs font-medium text-[#0F1116] focus:outline-none focus:border-[#7141E8]"
-                  >
-                    <option value="1x (24px)">1x (24px)</option>
-                    <option value="2x (48px)">2x (48px)</option>
-                    <option value="4x (96px)">4x (96px)</option>
-                    <option value="8x (192px)">8x (192px)</option>
-                    <option value="512px (High Res)">512px (High Res)</option>
-                  </select>
+                    onChange={setPngScale}
+                    className="flex-1"
+                    menuWidthClassName="w-52"
+                    options={[
+                      { value: "1x (24px)", label: "1x (24px)", meta: "24×24" },
+                      { value: "2x (48px)", label: "2x (48px)", meta: "48×48" },
+                      { value: "4x (96px)", label: "4x (96px)", meta: "96×96" },
+                      { value: "8x (192px)", label: "8x (192px)", meta: "192×192" },
+                      { value: "512px (High Res)", label: "512px", meta: "High Res" },
+                    ]}
+                  />
 
                   <button
                     type="button"
@@ -1660,67 +1652,33 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* Syntax-Styled Read-Only SVG Code Preview */}
+              {/* Read-Only SVG Code Preview */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between text-xs font-bold text-[#0F1116]">
-                  <span>SVG Markup Code</span>
+                  <span>SVG</span>
                   <button
                     type="button"
                     onClick={handleCopySvg}
                     className="text-[11px] font-semibold text-[#7141E8] hover:underline flex items-center gap-1"
                   >
                     <Copy className="w-3 h-3" />
-                    <span>Copy code</span>
+                    <span>Copy</span>
                   </button>
                 </div>
 
                 <div className="relative rounded-[12px] bg-[#0F1116] text-[#F1F1F3] p-3 text-[11px] font-mono overflow-x-auto max-h-36 no-scrollbar border border-black/10">
-                  <pre className="m-0 leading-relaxed">
-                    <span className="text-[#B89AFF]">&lt;svg</span>{" "}
-                    <span className="text-[#38BDF8]">xmlns</span>=
-                    <span className="text-[#A7F3D0]">
-                      "http://www.w3.org/2000/svg"
-                    </span>
-                    {"\n"}
-                    {"  "}
-                    <span className="text-[#38BDF8]">width</span>=
-                    <span className="text-[#A7F3D0]">"{size}"</span>{" "}
-                    <span className="text-[#38BDF8]">height</span>=
-                    <span className="text-[#A7F3D0]">"{size}"</span>
-                    {"\n"}
-                    {"  "}
-                    <span className="text-[#38BDF8]">stroke</span>=
-                    <span className="text-[#A7F3D0]">"{fgColor}"</span>{" "}
-                    <span className="text-[#38BDF8]">stroke-width</span>=
-                    <span className="text-[#A7F3D0]">"{strokeWidth}"</span>
-                    {"\n"}
-                    {"  "}
-                    <span className="text-[#38BDF8]">fill</span>=
-                    <span className="text-[#A7F3D0]">"none"</span>
-                    <span className="text-[#B89AFF]">&gt;</span>
-                    {"\n"}
-                    {"  "}
-                    <span className="text-[#64748B]">
-                      &lt;!-- {icon.name} from {icon.source} --&gt;
-                    </span>
-                    {"\n"}
-                    {"  "}
-                    <span className="text-[#B89AFF]">&lt;path</span>{" "}
-                    <span className="text-[#38BDF8]">d</span>=
-                    <span className="text-[#A7F3D0]">"M..."</span>
-                    <span className="text-[#B89AFF]">&gt;&lt;/path&gt;</span>
-                    {"\n"}
-                    <span className="text-[#B89AFF]">&lt;/svg&gt;</span>
+                  <pre className="m-0 leading-relaxed whitespace-pre-wrap break-all">
+                    {generatedSvg}
                   </pre>
                 </div>
               </div>
 
-              {/* License & Attribution Block */}
-              <div className="p-3.5 rounded-[12px] bg-[#F7F7F8] border border-[#E7E7EA] flex flex-col gap-2">
+              {/* License & Source */}
+              <div className="p-3.5 rounded-[12px] bg-[#F7F7F8] border border-[#E7E7EA] flex flex-col gap-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-[#0F1116] flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5 text-[#2EA45B]" />
-                    <span>License Rights</span>
+                    <span>License</span>
                   </span>
                   <span className="font-mono text-[11px] font-semibold text-[#0F1116]">
                     {icon.license}
@@ -1728,41 +1686,9 @@ export const IconDetailModal: React.FC<IconDetailModalProps> = ({
                 </div>
 
                 <p className="text-[11px] text-[#8E8E93] m-0 leading-normal">
-                  {icon.license === "BSD"
-                    ? "Keep the original copyright, license conditions, and disclaimer with redistributed copies."
-                    : icon.license === "CC0-1.0"
-                      ? "Released into the public domain; author credit is appreciated when available."
-                      : "Check the source license terms before redistributing or modifying this artwork."}
-                </p>
-              </div>
-
-              {/* Pale Violet Informational Notice about Source Attribution */}
-              <div className="p-3.5 rounded-[12px] bg-[#7141E8]/8 border border-[#7141E8]/20 flex items-start gap-2.5 text-xs text-[#0F1116]">
-                <Sparkles className="w-4 h-4 text-[#7141E8] shrink-0 mt-0.5" />
-                <p className="m-0 leading-relaxed text-[11px]">
-                  <strong>Attribution Notice:</strong>{" "}
-                  {icon.author ? (
-                    <>
-                      Created by{" "}
-                      <span className="font-semibold text-[#7141E8]">
-                        {icon.author}
-                      </span>{" "}
-                      and shared through{" "}
-                      <span className="font-semibold text-[#7141E8]">
-                        {icon.source}
-                      </span>
-                      .
-                    </>
-                  ) : (
-                    <>
-                      Shared through{" "}
-                      <span className="font-semibold text-[#7141E8]">
-                        {icon.source}
-                      </span>
-                      .
-                    </>
-                  )}{" "}
-                  Keep this source information with the exported artwork.
+                  {icon.author
+                    ? `${icon.author} · ${icon.source}`
+                    : icon.source}
                 </p>
               </div>
             </div>

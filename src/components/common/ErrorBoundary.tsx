@@ -46,8 +46,7 @@ export class ErrorBoundary extends Component<
             </h2>
 
             <p className="text-xs text-[#8E8E93] mb-6 leading-relaxed">
-              An unexpected error occurred while rendering the workspace. Your
-              saved favorites in local storage remain safe.
+              Couldn’t load the page. Reload to try again.
             </p>
 
             {this.state.error && (
@@ -62,7 +61,7 @@ export class ErrorBoundary extends Component<
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0F1116] hover:bg-[#1E2028] text-white text-xs font-semibold shadow-xs hover:-translate-y-[1px] active:translate-y-0 transition-all cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reload Workspace</span>
+              <span>Reload</span>
             </button>
           </div>
         </div>
